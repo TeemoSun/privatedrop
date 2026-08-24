@@ -1,12 +1,11 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: pigzho/privatedrop:latest
+    pull_policy: always
     container_name: privatedrop-app
     restart: unless-stopped
     ports:
-      - "19234:8000"
+      - "8000:8000"
     environment:
       APP_PASSWORD: ${APP_PASSWORD:?APP_PASSWORD 未设置}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 未设置}
@@ -30,7 +29,7 @@ services:
       retries: 3
 
   db:
-    image: postgres:16-alpine
+    image: postgres:16
     container_name: privatedrop-db
     restart: unless-stopped
     environment:

@@ -172,7 +172,7 @@ WS     /api/ws?token=<access>
 | 服务 | 镜像 | 说明 |
 |------|------|------|
 | `app` | build `Dockerfile`（多阶段，仓库根） | 唯一对外入口，端口映射 `19234:8000` |
-| `db` | postgres:16-alpine | 卷 `pgdata`；健康检查；无端口暴露 |
+| `db` | postgres:16 | 卷 `pgdata`；健康检查；无端口暴露 |
 | `minio` | minio/minio | 卷 `miniodata`；console 9001 仅局域网可留 |
 
 **Dockerfile（多阶段）**
