@@ -1,0 +1,62 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: privatedrop-app
+    restart: unless-stopped
+    ports:
+      - "19234:8000"
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:?APP_PASSWORD 未设置}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 未设置}
+      DATABASE_URL: postgresql+asyncpg://privatedrop:${POSTGRES_PASSWORD:-privatedrop}@db:5432/privatedrop
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-privatedrop}
+      MINIO_SECURE: "false"
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5368709120}
+      UPLOAD_URL_TTL_SECONDS: ${UPLOAD_URL_TTL_SECONDS:-900}
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/devices')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  db:
+    image: postgres:16-alpine
+    container_name: privatedrop-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: privatedrop
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-privatedrop}
+      POSTGRES_DB: privatedrop
+    volumes:
+      - ./data/pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U privatedrop -d privatedrop"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    container_name: privatedrop-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - ./data/miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

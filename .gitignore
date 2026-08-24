@@ -14,6 +14,10 @@ frontend/dist/
 backend/app/static/
 *.tsbuildinfo
 
+# Docker Compose 覆盖文件
+compose.override.yaml
+compose.override.yml
+
 # Data & env
 data/
 .env

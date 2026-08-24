@@ -1,0 +1,83 @@
+import uuid
+from collections import defaultdict, deque
+from datetime import datetime, timedelta, timezone
+
+import bcrypt
+import jwt
+
+from app.config import settings
+
+APP_PASSWORD_HASH: str | None = None
+
+_login_attempts: dict[str, deque[datetime]] = defaultdict(deque)
+LOGIN_WINDOW = timedelta(seconds=60)
+LOGIN_MAX_ATTEMPTS = 5
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("ascii")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("ascii"))
+    except ValueError:
+        return False
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def check_login_rate(ip: str) -> bool:
+    now = utc_now()
+    queue = _login_attempts[ip]
+    while queue and now - queue[0] > LOGIN_WINDOW:
+        queue.popleft()
+    if len(queue) >= LOGIN_MAX_ATTEMPTS:
+        return False
+    queue.append(now)
+    return True
+
+
+def create_access_token(device_id: uuid.UUID) -> str:
+    now = utc_now()
+    return jwt.encode(
+        {
+            "sub": str(device_id),
+            "type": "access",
+            "iat": now,
+            "exp": now + timedelta(minutes=settings.access_token_minutes),
+        },
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+
+
+def create_refresh_token(device_id: uuid.UUID, jti: uuid.UUID) -> str:
+    now = utc_now()
+    return jwt.encode(
+        {
+            "sub": str(device_id),
+            "type": "refresh",
+            "jti": str(jti),
+            "iat": now,
+            "exp": now + timedelta(days=settings.refresh_token_days),
+        },
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+
+
+def decode_access_token(token: str) -> uuid.UUID:
+    payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    if payload.get("type") != "access":
+        raise jwt.InvalidTokenError("not an access token")
+    return uuid.UUID(payload["sub"])
+
+
+def decode_refresh_token(token: str) -> tuple[uuid.UUID, uuid.UUID]:
+    payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    if payload.get("type") != "refresh":
+        raise jwt.InvalidTokenError("not a refresh token")
+    return uuid.UUID(payload["sub"]), uuid.UUID(payload["jti"])
