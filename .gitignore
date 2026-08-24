@@ -21,6 +21,8 @@ compose.override.yml
 # Data & env
 data/
 .env
+.env.*
+!.env.example
 *.db
 *.db-journal
 
