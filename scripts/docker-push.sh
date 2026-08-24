@@ -6,7 +6,7 @@ IMAGE="privatedrop"
 DATE_TAG="$(date +%Y%m%d)"
 
 echo "==> Building $USER/$IMAGE:latest and :$DATE_TAG"
-docker build -t "$USER/$IMAGE:latest" -t "$USER/$IMAGE:$DATE_TAG" .
+docker build -f backend/Dockerfile -t "$USER/$IMAGE:latest" -t "$USER/$IMAGE:$DATE_TAG" .
 
 echo "==> Pushing tags"
 docker push "$USER/$IMAGE:latest"
