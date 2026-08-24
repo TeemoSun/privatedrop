@@ -171,7 +171,7 @@ WS     /api/ws?token=<access>
 
 | 服务 | 镜像 | 说明 |
 |------|------|------|
-| `app` | build `backend/Dockerfile`（多阶段） | 唯一对外入口，端口映射 `19234:8000` |
+| `app` | build `Dockerfile`（多阶段，仓库根） | 唯一对外入口，端口映射 `19234:8000` |
 | `db` | postgres:16-alpine | 卷 `pgdata`；健康检查；无端口暴露 |
 | `minio` | minio/minio | 卷 `miniodata`；console 9001 仅局域网可留 |
 
@@ -192,6 +192,7 @@ Stage 2: python:3.12-slim → pip install -e . (uv) → COPY dist → backend/ap
 privatedrop/
 ├── compose.yaml
 ├── .env.example
+├── Dockerfile               # 多阶段构建（仓库根目录）
 ├── docs/
 │   ├── DESIGN.md                 # 本设计文档
 │   ├── Docker镜像打包上传.md     # Docker Hub 发布流程
@@ -199,7 +200,6 @@ privatedrop/
 ├── scripts/
 │   └── docker-push.sh            # 一键打包推送 Docker Hub
 ├── backend/
-│   ├── Dockerfile
 │   ├── pyproject.toml / uv.lock
 │   ├── alembic/
 │   ├── app/

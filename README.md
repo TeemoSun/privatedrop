@@ -27,11 +27,11 @@
 privatedrop/
 ├── compose.yaml          # 生产（PRD）部署：app + db + minio
 ├── compose.dev.yaml      # 开发（DEV）部署：app + db + minio（带端口映射/默认值）
+├── Dockerfile            # 多阶段：前端构建产物直接打进镜像
 ├── .env.example          # 环境变量示例
 ├── docs/                 # 设计文档与发布流程
 ├── scripts/docker-push.sh
 ├── backend/              # FastAPI 后端（uv 管理依赖）
-│   ├── Dockerfile        # 多阶段：前端构建产物直接打进镜像
 │   ├── alembic/          # 数据库迁移
 │   └── app/              # 应用代码（api/ config/ security/ storage/ ws/ cleanup…）
 └── frontend/             # React 前端（npm 管理）
@@ -88,10 +88,10 @@ docker compose up -d --build   # 或重建镜像后 docker compose up -d
 # 1. 启动依赖（PostgreSQL + MinIO，均带宿主端口映射，供本地后端连接）
 docker compose -f compose.dev.yaml up -d --build
 
-# 2. 后端（backend/ 目录下，读取 backend/.env）
+# 2. 后端（backend/ 目录下执行，配置读取根目录 .env）
 cd backend
 uv sync --extra dev
-# 编辑 backend/.env（参考 .env.example 注释，指向 localhost 的 db/minio）
+# 编辑根目录 .env（参考 .env.example 注释，指向 localhost 的 db/minio）
 uv run uvicorn app.main:app --reload --port 8000
 
 # 3. 前端（另开终端）

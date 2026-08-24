@@ -1,8 +1,18 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _env_file() -> str:
+    here = Path(__file__).resolve().parent.parent.parent
+    root_env = here / ".env"
+    if root_env.is_file():
+        return str(root_env)
+    return ".env"
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_env_file(), env_file_encoding="utf-8", extra="ignore")
 
     app_password: str = ""
     jwt_secret: str = ""
