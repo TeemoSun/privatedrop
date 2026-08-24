@@ -191,8 +191,13 @@ privatedrop/
 ├── compose.yaml
 ├── .env.example
 ├── docs/
-│   ├── DESIGN.md
-├── backend/│   ├── Dockerfile
+│   ├── DESIGN.md                 # 本设计文档
+│   ├── Docker镜像打包上传.md     # Docker Hub 发布流程
+│   └── GitHub推送流程.md         # GitHub 发布流程
+├── scripts/
+│   └── docker-push.sh            # 一键打包推送 Docker Hub
+├── backend/
+│   ├── Dockerfile
 │   ├── pyproject.toml / uv.lock
 │   ├── alembic/
 │   ├── app/
