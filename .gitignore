@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+frontend/dist/
+backend/app/static/
+*.tsbuildinfo
+
+# Data & env
+data/
+.env
+*.db
+*.db-journal
+
+# Misc
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Kilo
+.kilo/
