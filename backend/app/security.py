@@ -12,6 +12,9 @@ APP_PASSWORD_HASH: str | None = None
 _login_attempts: dict[str, deque[datetime]] = defaultdict(deque)
 LOGIN_WINDOW = timedelta(seconds=60)
 LOGIN_MAX_ATTEMPTS = 5
+_MAX_IPS = 10_000
+
+_revoked_jtis: set[str] = set()
 
 
 def hash_password(password: str) -> str:
@@ -36,16 +39,24 @@ def check_login_rate(ip: str) -> bool:
         queue.popleft()
     if len(queue) >= LOGIN_MAX_ATTEMPTS:
         return False
+    if len(_login_attempts) >= _MAX_IPS and ip not in _login_attempts:
+        for key in list(_login_attempts.keys()):
+            if now - _login_attempts[key][-1] > LOGIN_WINDOW:
+                del _login_attempts[key]
+            if len(_login_attempts) < _MAX_IPS:
+                break
     queue.append(now)
     return True
 
 
 def create_access_token(device_id: uuid.UUID) -> str:
     now = utc_now()
+    jti = uuid.uuid4()
     return jwt.encode(
         {
             "sub": str(device_id),
             "type": "access",
+            "jti": str(jti),
             "iat": now,
             "exp": now + timedelta(minutes=settings.access_token_minutes),
         },
@@ -69,11 +80,21 @@ def create_refresh_token(device_id: uuid.UUID, jti: uuid.UUID) -> str:
     )
 
 
-def decode_access_token(token: str) -> uuid.UUID:
+def _decode_access_payload(token: str) -> dict:
     payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     if payload.get("type") != "access":
         raise jwt.InvalidTokenError("not an access token")
-    return uuid.UUID(payload["sub"])
+    if payload.get("jti") in _revoked_jtis:
+        raise jwt.InvalidTokenError("access token revoked")
+    return payload
+
+
+def decode_access_token(token: str) -> uuid.UUID:
+    return uuid.UUID(_decode_access_payload(token)["sub"])
+
+
+def decode_access_token_jti(token: str) -> str:
+    return str(_decode_access_payload(token)["jti"])
 
 
 def decode_refresh_token(token: str) -> tuple[uuid.UUID, uuid.UUID]:
@@ -81,3 +102,7 @@ def decode_refresh_token(token: str) -> tuple[uuid.UUID, uuid.UUID]:
     if payload.get("type") != "refresh":
         raise jwt.InvalidTokenError("not a refresh token")
     return uuid.UUID(payload["sub"]), uuid.UUID(payload["jti"])
+
+
+def revoke_access_tokens(*jti: str) -> None:
+    _revoked_jtis.update(jti)

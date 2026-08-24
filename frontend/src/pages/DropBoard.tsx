@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Inbox } from "lucide-react";
 
 import { api } from "../lib/api";
@@ -12,50 +11,51 @@ import { useWs } from "../hooks/useWs";
 import type { Item } from "../lib/types";
 
 export function DropBoard() {
-  const queryClient = useQueryClient();
   const [note, setNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [list, setList] = useState<Item[]>([]);
   const cursorRef = useRef<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+
+  const loadPage = useCallback(async (cursor: string | null) => {
+    const page = await api.items({ cursor: cursor ?? undefined, limit: 20 });
+    return page;
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadPage(null).then((page) => {
+      if (cancelled) return;
+      setList(page.items);
+      cursorRef.current = page.next_cursor;
+      setHasMore(!!page.next_cursor);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadPage, reloadTick]);
 
   const loadMore = useCallback(async () => {
     if (!cursorRef.current) return;
     setLoadingMore(true);
     try {
-      const page = await api.items({ cursor: cursorRef.current, limit: 20 });
+      const page = await loadPage(cursorRef.current);
       setList((prev) => [...prev, ...page.items]);
       cursorRef.current = page.next_cursor;
       setHasMore(!!page.next_cursor);
     } finally {
       setLoadingMore(false);
     }
-  }, []);
-
-  const { data: initial } = useQuery({
-    queryKey: ["items"],
-    queryFn: () => api.items({ limit: 20 }),
-  });
-
-  useEffect(() => {
-    if (initial && !loaded) {
-      setList(initial.items);
-      cursorRef.current = initial.next_cursor;
-      setHasMore(!!initial.next_cursor);
-      setLoaded(true);
-    }
-  }, [initial, loaded]);
+  }, [loadPage]);
 
   useWs({
     onEvent: (event) => {
       if (event.type === "item_created") {
         setList((prev) => [event.item, ...prev.filter((i) => i.id !== event.item.id)]);
-        queryClient.invalidateQueries({ queryKey: ["items"] });
       } else if (event.type === "item_deleted") {
         setList((prev) => prev.filter((i) => i.id !== event.id));
-        queryClient.invalidateQueries({ queryKey: ["items"] });
       }
     },
   });
@@ -66,6 +66,7 @@ export function DropBoard() {
     try {
       await api.createNote(note.trim());
       setNote("");
+      setReloadTick((t) => t + 1);
     } finally {
       setSavingNote(false);
     }
@@ -73,7 +74,7 @@ export function DropBoard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <DropZone onCreated={() => queryClient.invalidateQueries({ queryKey: ["items"] })} />
+      <DropZone onCreated={() => setReloadTick((t) => t + 1)} />
 
       <div className="flex flex-col gap-2 rounded-lg border p-3">
         <Textarea

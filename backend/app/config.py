@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://privatedrop:privatedrop@localhost:5432/privatedrop"
 
     minio_endpoint: str = "localhost:9000"
+    minio_public_endpoint: str = ""
     minio_root_user: str = "minioadmin"
     minio_root_password: str = "minioadmin"
     minio_bucket: str = "privatedrop"

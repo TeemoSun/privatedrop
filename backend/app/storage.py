@@ -3,9 +3,10 @@ import hashlib
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlsplit, urlunsplit
 
 import boto3
-from botocore.client import Config
+from botocore.client import BaseClient, Config
 from botocore.exceptions import BotoCoreError, ClientError
 
 from app.config import settings
@@ -13,7 +14,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def _client() -> boto3.client:
+def _client() -> BaseClient:
     scheme = "https" if settings.minio_secure else "http"
     return boto3.client(
         "s3",
@@ -23,6 +24,21 @@ def _client() -> boto3.client:
         region_name="us-east-1",
         config=Config(signature_version="s3v4"),
     )
+
+
+def _public_endpoint() -> str:
+    public = settings.minio_public_endpoint.strip()
+    if public:
+        return public
+    return settings.minio_endpoint
+
+
+def _rewrite_host(url: str) -> str:
+    parsed = urlsplit(url)
+    host = _public_endpoint()
+    if "://" in host:
+        host = urlsplit(host if "//" in host else f"//{host}").netloc
+    return urlunsplit((parsed.scheme, host, parsed.path, parsed.query, parsed.fragment))
 
 
 def ensure_bucket() -> None:
@@ -55,7 +71,7 @@ def sign_upload_url(
         },
         ExpiresIn=_expiry(),
     )
-    return url, expires
+    return _rewrite_host(url), expires
 
 
 def sign_download_url(key: str) -> tuple[str, datetime]:
@@ -65,7 +81,7 @@ def sign_download_url(key: str) -> tuple[str, datetime]:
         Params={"Bucket": settings.minio_bucket, "Key": key},
         ExpiresIn=_expiry(),
     )
-    return url, expires
+    return _rewrite_host(url), expires
 
 
 def checksum_sha256(data: bytes) -> str:

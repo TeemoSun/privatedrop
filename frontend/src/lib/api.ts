@@ -70,7 +70,7 @@ async function doRefresh(): Promise<string | null> {
   }
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = doRefresh().finally(() => {
       refreshPromise = null;
@@ -137,10 +137,21 @@ export const api = {
       }),
     }),
 
-  logout: () =>
-    request<void>("/api/auth/logout", { method: "POST" }).catch(() => {
+  logout: async () => {
+    const refresh = localStorage.getItem(REFRESH_KEY);
+    try {
+      if (refresh) {
+        await request<void>("/api/auth/logout", {
+          method: "POST",
+          body: JSON.stringify({ refresh_token: refresh }),
+        });
+      }
+    } catch {
       /* 忽略注销失败 */
-    }),
+    } finally {
+      clearTokens();
+    }
+  },
 
   devices: () => request<Device[]>("/api/devices"),
 

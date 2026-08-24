@@ -1,5 +1,3 @@
-import uuid
-
 import jwt
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
@@ -14,11 +12,11 @@ async def websocket_endpoint(
     websocket: WebSocket, token: str = Query(default="")
 ) -> None:
     try:
-        device_id = decode_access_token(token)
+        jti = decode_access_token(token)
     except (jwt.InvalidTokenError, ValueError, KeyError) as exc:
         await websocket.close(code=4401, reason="invalid token")
         return
-    await manager.connect(websocket, device_id)
+    await manager.connect(websocket, jti)
     try:
         while True:
             await websocket.receive_text()

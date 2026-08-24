@@ -1,3 +1,4 @@
+import { sha256 } from "js-sha256";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -26,9 +27,15 @@ export function generateDeviceId(): string {
 }
 
 export async function sha256Hex(data: ArrayBuffer | Blob): Promise<string> {
-  const buffer = data instanceof Blob ? await data.arrayBuffer() : data;
-  const digest = await crypto.subtle.digest("SHA-256", buffer);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const hasher = sha256.create();
+  if (data instanceof Blob) {
+    const CHUNK = 8 * 1024 * 1024;
+    for (let offset = 0; offset < data.size; offset += CHUNK) {
+      const slice = await data.slice(offset, offset + CHUNK).arrayBuffer();
+      hasher.update(new Uint8Array(slice));
+    }
+  } else {
+    hasher.update(new Uint8Array(data));
+  }
+  return hasher.hex();
 }

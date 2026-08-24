@@ -7,9 +7,9 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config as AlembicConfig
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from app.api import auth, devices, items, ws
 from app.cleanup import cleanup_job
@@ -74,13 +74,25 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
 
+    @app.get("/healthz", include_in_schema=False)
+    async def healthz() -> dict[str, str]:
+        return {"status": "ok"}
+
     app.include_router(auth.router)
     app.include_router(devices.router)
     app.include_router(items.router)
     app.include_router(ws.router)
 
     if STATIC_DIR.is_dir():
-        app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="spa")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def spa_fallback(full_path: str):
+            if full_path.startswith("api/"):
+                raise HTTPException(status_code=404)
+            candidate = (STATIC_DIR / full_path).resolve()
+            if candidate.is_file() and STATIC_DIR in candidate.parents:
+                return FileResponse(candidate)
+            return FileResponse(STATIC_DIR / "index.html")
 
     return app
 

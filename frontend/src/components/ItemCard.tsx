@@ -20,7 +20,7 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
     setDownloading(true);
     try {
       const { url } = await api.downloadUrl(item.id, fileId);
-      window.location.href = url;
+      window.open(url, "_blank", "noopener,noreferrer");
     } finally {
       setDownloading(false);
     }

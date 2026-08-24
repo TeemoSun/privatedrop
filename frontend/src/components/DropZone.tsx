@@ -6,6 +6,8 @@ import { cn, formatBytes, sha256Hex } from "../lib/utils";
 import { Button } from "./ui/Button";
 import { Spinner } from "./ui/Misc";
 
+const maxFileSize = 5 * 1024 * 1024 * 1024;
+
 interface PendingFile {
   file: File;
   progress: number;
@@ -54,6 +56,11 @@ export function DropZone({ onCreated }: DropZoneProps) {
       .filter((f) => f.size > 0)
       .map((f) => ({ file: f, progress: 0, status: "uploading" as const }));
     if (!next.length) return;
+    const oversized = next.filter((f) => f.file.size > maxFileSize);
+    if (oversized.length) {
+      setError(`文件超过大小上限（${formatBytes(maxFileSize)}）：${oversized.map((f) => f.file.name).join("、")}`);
+      return;
+    }
     setFiles((prev) => [...prev, ...next]);
     setError(null);
   }, []);
@@ -72,6 +79,7 @@ export function DropZone({ onCreated }: DropZoneProps) {
         })),
       );
       const created = await api.createFileItem(specs, note.trim() || null);
+      let allOk = true;
       const uploads = created.files.map(async (target, i) => {
         try {
           await putWithProgress(target, files[i].file, (pct) => {
@@ -79,17 +87,16 @@ export function DropZone({ onCreated }: DropZoneProps) {
           });
           setFiles((prev) => prev.map((p, idx) => (idx === i ? { ...p, status: "done", progress: 100 } : p)));
         } catch (e) {
+          allOk = false;
           setFiles((prev) =>
             prev.map((p, idx) => (idx === i ? { ...p, status: "error", error: (e as Error).message } : p)),
           );
-          throw e;
         }
       });
       await Promise.all(uploads);
 
-      const hasError = files.some((f) => f.status === "error");
-      if (hasError) {
-        setError("部分文件上传失败");
+      if (!allOk) {
+        setError("部分文件上传失败，未完成条目将在 1 小时后自动清理");
         return;
       }
       await api.uploadComplete(created.item_id);
@@ -97,7 +104,7 @@ export function DropZone({ onCreated }: DropZoneProps) {
       setFiles([]);
       setNote("");
     } catch (e) {
-      if (e instanceof Error && e.message !== "部分文件上传失败") {
+      if (e instanceof Error) {
         setError(e.message || "创建条目失败");
       }
     } finally {

@@ -137,7 +137,8 @@ DOCKER_USER=pigzho bash scripts/docker-push.sh
 | `APP_PASSWORD` | PRD 必填 | — | 登录密码（bcrypt 哈希，启动时生成） |
 | `JWT_SECRET` | PRD 必填 | — | JWT HS256 签名密钥 |
 | `DATABASE_URL` | — | compose 内自动生成 | SQLAlchemy async URL |
-| `MINIO_ENDPOINT` | — | `minio:9000` | MinIO S3 端点 |
+| `MINIO_ENDPOINT` | — | `minio:9000` | MinIO S3 端点（容器内部访问） |
+| `MINIO_PUBLIC_ENDPOINT` | PRD 必填 | `localhost:9000` | 浏览器可达的 MinIO 地址（预签名 URL 用；反向代理/域名场景必须改） |
 | `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | PRD 必填（非默认值） | — | MinIO 凭证 |
 | `MINIO_BUCKET` | — | `privatedrop` | 对象存储桶 |
 | `MINIO_SECURE` | — | `false` | 是否使用 HTTPS 访问 MinIO |

@@ -1,8 +1,12 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text, Uuid, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class Base(DeclarativeBase):
@@ -33,7 +37,10 @@ class DropItem(Base):
     kind: Mapped[str] = mapped_column(String(16))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), index=False
+        DateTime(timezone=True),
+        default=_utc_now,
+        server_default=func.now(),
+        index=False,
     )
 
     files: Mapped[list["DropFile"]] = relationship(

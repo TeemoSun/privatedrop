@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { getAccessToken } from "../lib/api";
+import { getAccessToken, refreshAccessToken } from "../lib/api";
 import type { WsEvent } from "../lib/types";
 
 interface UseWsOptions {
@@ -9,7 +9,6 @@ interface UseWsOptions {
 }
 
 const MAX_RETRY_DELAY = 30_000;
-const MAX_RETRY_MS = MAX_RETRY_DELAY;
 
 export function useWs({ onEvent, enabled = true }: UseWsOptions): void {
   const onEventRef = useRef(onEvent);
@@ -42,10 +41,17 @@ export function useWs({ onEvent, enabled = true }: UseWsOptions): void {
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = async (ev) => {
         if (closed) return;
+        if (ev.code === 4401) {
+          const fresh = await refreshAccessToken();
+          if (!fresh) {
+            closed = true;
+            return;
+          }
+        }
         timer = setTimeout(connect, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, MAX_RETRY_MS);
+        retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
       };
 
       ws.onerror = () => {

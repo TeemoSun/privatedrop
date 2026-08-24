@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_session
+from app.api.deps import get_session, require_auth
 from app.models import Device
 from app.schemas import LoginRequest, RefreshRequest, TokenResponse
 from app import security as security_module
@@ -14,6 +14,7 @@ from app.security import (
     create_access_token,
     create_refresh_token,
     decode_refresh_token,
+    revoke_access_tokens,
     utc_now,
     verify_password,
 )
@@ -85,8 +86,19 @@ async def refresh(
 
 
 @router.post("/logout", status_code=204)
-async def logout(device_id: uuid.UUID, session: AsyncSession = Depends(get_session)) -> None:
+async def logout(
+    body: RefreshRequest,
+    session: AsyncSession = Depends(get_session),
+    _auth: tuple = Depends(require_auth),
+) -> None:
+    revoke_access_tokens(_auth[1])
+    try:
+        device_id, jti = decode_refresh_token(body.refresh_token)
+    except Exception:
+        return
+    if device_id is None:
+        return
     device = await session.get(Device, device_id)
-    if device is not None:
+    if device is not None and device.refresh_jti == jti:
         device.refresh_jti = None
         await session.commit()

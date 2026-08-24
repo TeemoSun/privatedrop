@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -55,8 +55,8 @@ async def _fetch_item_out(session: AsyncSession, item_id: uuid.UUID) -> ItemOut:
 
 
 def _encode_cursor(created_at: datetime, item_id: uuid.UUID) -> str:
-    if created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=timezone.utc)
+    if created_at.tzinfo is not None:
+        created_at = created_at.astimezone(timezone.utc)
     raw = f"{created_at.isoformat()},{item_id}"
     return base64.urlsafe_b64encode(raw.encode()).rstrip(b"=").decode()
 
@@ -92,7 +92,7 @@ async def list_items(
     limit: int = Query(default=_PAGE_SIZE, ge=1, le=100),
     kind: str | None = Query(default=None, pattern="^(file|note)$"),
     session: AsyncSession = Depends(get_session),
-    _: uuid.UUID = Depends(require_auth),
+    _: tuple = Depends(require_auth),
 ) -> ItemList:
     stmt_base = (
         select(DropItem)
@@ -104,23 +104,33 @@ async def list_items(
 
     ready_items: list[DropItem] = []
     raw_cursor = cursor
-    has_more_raw = True
-    while len(ready_items) < limit and has_more_raw:
+    has_more_raw = False
+    while len(ready_items) < limit:
         stmt = stmt_base.limit(limit + 1)
         if raw_cursor:
             created_at, item_id = _decode_cursor(raw_cursor)
-            stmt = stmt.where((DropItem.created_at, DropItem.id) < (created_at, item_id))
+            stmt = stmt.where(
+                or_(
+                    DropItem.created_at < created_at,
+                    and_(DropItem.created_at == created_at, DropItem.id < item_id),
+                )
+            )
         result = await session.execute(stmt)
         rows = list(result.scalars().all())
-        has_more_raw = len(rows) > limit
-        rows = rows[:limit]
         if not rows:
             break
-        raw_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id)
+        has_more_raw = len(rows) > limit
+        rows = rows[:limit]
         ready_items.extend(item for item in rows if _is_ready(item))
+        if not has_more_raw:
+            break
+        raw_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id)
 
-    ready_items = ready_items[:limit]
-    next_cursor = raw_cursor if has_more_raw else None
+    if len(ready_items) > limit:
+        ready_items = ready_items[:limit]
+        next_cursor = _encode_cursor(ready_items[-1].created_at, ready_items[-1].id)
+    else:
+        next_cursor = raw_cursor if has_more_raw else None
 
     return ItemList(items=[_item_out(item) for item in ready_items], next_cursor=next_cursor)
 
@@ -129,8 +139,9 @@ async def list_items(
 async def create_item(
     body: ItemCreate,
     session: AsyncSession = Depends(get_session),
-    device_id: uuid.UUID = Depends(require_auth),
+    auth: tuple = Depends(require_auth),
 ) -> ItemCreateResponse:
+    device_id = auth[0]
     if body.kind == "note":
         if body.note is None or not body.note.strip():
             raise HTTPException(status_code=422, detail="note content required")
@@ -186,7 +197,7 @@ async def create_item(
 async def upload_complete(
     item_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    _: uuid.UUID = Depends(require_auth),
+    _: tuple = Depends(require_auth),
 ) -> ItemOut:
     item = await _get_ready_item(session, item_id)
     if item.kind != "file":
@@ -222,7 +233,7 @@ async def download_url(
     item_id: uuid.UUID,
     file_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    _: uuid.UUID = Depends(require_auth),
+    _: tuple = Depends(require_auth),
 ) -> DownloadUrlResponse:
     item = await _get_ready_item(session, item_id)
     if not _is_ready(item):
@@ -238,7 +249,7 @@ async def download_url(
 async def delete_item(
     item_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    _: uuid.UUID = Depends(require_auth),
+    _: tuple = Depends(require_auth),
 ) -> None:
     item = await _get_ready_item(session, item_id)
     for f in item.files:

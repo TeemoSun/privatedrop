@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/devices", tags=["devices"])
 @router.get("", response_model=list[DeviceOut])
 async def list_devices(
     session: AsyncSession = Depends(get_session),
-    _: uuid.UUID = Depends(require_auth),
+    _: tuple = Depends(require_auth),
 ) -> list[Device]:
     result = await session.execute(select(Device).order_by(Device.created_at))
     return list(result.scalars().all())
@@ -25,7 +25,7 @@ async def rename_device(
     device_id: uuid.UUID,
     body: DevicePatch,
     session: AsyncSession = Depends(get_session),
-    _: uuid.UUID = Depends(require_auth),
+    _: tuple = Depends(require_auth),
 ) -> Device:
     device = await session.get(Device, device_id)
     if device is None:
@@ -40,7 +40,7 @@ async def rename_device(
 async def delete_device(
     device_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-    _: uuid.UUID = Depends(require_auth),
+    _: tuple = Depends(require_auth),
 ) -> None:
     device = await session.get(Device, device_id)
     if device is None:

@@ -37,7 +37,7 @@ class FileSpec(BaseModel):
     file_name: str = Field(min_length=1, max_length=1024)
     mime_type: str = Field(min_length=1, max_length=255)
     size: int = Field(gt=0)
-    sha256: str = Field(min_length=64, max_length=64)
+    sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
 
 
 class ItemCreate(BaseModel):
