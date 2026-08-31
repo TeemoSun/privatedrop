@@ -1,3 +1,4 @@
+import { detectDeviceNameSync } from "./device";
 import type {
   Device,
   DownloadUrlResponse,
@@ -33,8 +34,7 @@ export function getDeviceId(): string {
 export function getDeviceName(): string {
   const name = localStorage.getItem("pd_device_name");
   if (name) return name;
-  const fallback = navigator.userAgent.match(/\(([^)]+)\)/)?.[1] ?? "未知设备";
-  return fallback.slice(0, 255);
+  return detectDeviceNameSync().slice(0, 255);
 }
 
 export function setDeviceName(name: string): void {

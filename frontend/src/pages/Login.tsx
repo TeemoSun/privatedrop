@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 import { api, setDeviceName, setTokens } from "../lib/api";
+import { detectDeviceNameAsync, detectDeviceNameSync } from "../lib/device";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
@@ -10,16 +11,24 @@ import { Spinner } from "../components/ui/Misc";
 
 export function Login() {
   const [password, setPassword] = useState("");
-  const [deviceName, setDeviceNameInput] = useState(() => {
-    const saved = localStorage.getItem("pd_device_name");
-    if (saved) return saved;
-    return navigator.userAgent.match(/\(([^)]+)\)/)?.[1] ?? "未知设备";
-  });
+  const [deviceName, setDeviceNameInput] = useState(() => detectDeviceNameSync());
+  const [isCustomName, setIsCustomName] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (localStorage.getItem("pd_device_name")) return;
+
+    detectDeviceNameAsync().then((detected) => {
+      if (!isCustomName && detected) {
+        setDeviceNameInput(detected);
+      }
+    });
+  }, [isCustomName]);
 
   const mutation = useMutation({
     mutationFn: async (pwd: string) => {
-      setDeviceName(deviceName);
+      const finalName = deviceName.trim() || detectDeviceNameSync();
+      setDeviceName(finalName);
       return api.login(pwd);
     },
     onSuccess: (data) => {
@@ -48,7 +57,10 @@ export function Login() {
               placeholder="设备名称"
               value={deviceName}
               maxLength={255}
-              onChange={(e) => setDeviceNameInput(e.target.value)}
+              onChange={(e) => {
+                setIsCustomName(true);
+                setDeviceNameInput(e.target.value);
+              }}
             />
             <Input
               type="password"
