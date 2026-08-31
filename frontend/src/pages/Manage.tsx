@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ChevronRight,
+  CornerDownLeft,
   File as FileIcon,
   LogOut,
   Pencil,
@@ -13,6 +14,7 @@ import {
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
 
 import { api, clearTokens, getDeviceId, getDeviceName, setDeviceName } from "../lib/api";
+import { getSendOnEnter, setSendOnEnter } from "../lib/settings";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 import { EmptyState, Spinner } from "../components/ui/Misc";
@@ -51,6 +53,8 @@ function ManageMenu() {
     queryKey: ["trash"],
     queryFn: api.trashItems,
   });
+
+  const [sendOnEnter, setSendOnEnterState] = useState(() => getSendOnEnter());
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-6">
@@ -110,6 +114,40 @@ function ManageMenu() {
               <ChevronRight className="h-4 w-4" />
             </div>
           </Link>
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-semibold text-muted-foreground uppercase px-1">
+          输入与交互偏好
+        </span>
+        <Card className="divide-y overflow-hidden border shadow-sm">
+          <div className="flex items-center justify-between p-4 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CornerDownLeft className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-medium text-sm">按 Enter 键发送</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  开启后按 Enter 发送、Shift+Enter 换行；关闭后按 Enter 仅换行（适合移动端输入）
+                </div>
+              </div>
+            </div>
+            <label className="relative inline-flex cursor-pointer items-center shrink-0">
+              <input
+                type="checkbox"
+                checked={sendOnEnter}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setSendOnEnterState(val);
+                  setSendOnEnter(val);
+                }}
+                className="peer sr-only"
+              />
+              <div className="h-6 w-11 rounded-full bg-input transition-colors peer-checked:bg-primary peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-background after:transition-transform after:content-[''] peer-checked:after:translate-x-full" />
+            </label>
+          </div>
         </Card>
       </div>
 

@@ -4,6 +4,7 @@ import { File as FileIcon, FileUp, Inbox, Lock, Plus, X } from "lucide-react";
 
 import { api, getAccessToken } from "../lib/api";
 import { isSecretUnlocked, lockSecretSession } from "../lib/secretSession";
+import { getSendOnEnter } from "../lib/settings";
 import { ItemCard } from "../components/ItemCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState, Spinner } from "../components/ui/Misc";
@@ -487,13 +488,17 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
           )}
 
           <Textarea
-            placeholder="写一条笔记，或添加文件后发送…"
+            placeholder={
+              getSendOnEnter()
+                ? "写一条笔记，或添加文件后发送… (Enter 发送)"
+                : "写一条笔记，或添加文件后发送…"
+            }
             value={note}
             rows={2}
             onChange={(e) => setNote(e.target.value)}
             onPaste={handlePaste}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (getSendOnEnter() && e.key === "Enter" && !e.shiftKey) {
                 if (e.nativeEvent.isComposing) {
                   return;
                 }
@@ -507,7 +512,11 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
 
           <div className="flex items-center justify-between pt-0.5">
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              {files.length > 0 ? `已选 ${files.length} 个文件` : "Enter 发送，Shift+Enter 换行"}
+              {files.length > 0
+                ? `已选 ${files.length} 个文件`
+                : getSendOnEnter()
+                  ? "Enter 发送，Shift+Enter 换行"
+                  : "点击发送按钮发送"}
             </span>
             <div className="flex items-center gap-2 ml-auto">
               <input
