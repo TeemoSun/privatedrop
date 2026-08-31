@@ -98,7 +98,6 @@ function ManageMenu() {
                 <div className="font-medium text-sm">回收站</div>
                 <div className="text-xs text-muted-foreground">
                   已删除的内容与文件保留 30 天
-                  {trashItems.length > 0 && ` (${trashItems.length} 个条目)`}
                 </div>
               </div>
             </div>
