@@ -3,14 +3,13 @@
   <rect x="32" y="32" width="448" height="448" rx="108" fill="#18181B" />
   <rect x="32" y="32" width="448" height="448" rx="108" fill="none" stroke="#27272A" stroke-width="4" />
 
-  <!-- iOS Share Sheet Box & Upward Arrow (Clean White) -->
-  <g fill="none" stroke="#F4F4F5" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+  <!-- iOS Share Sheet Box & Upward Arrow (Clean White, Scaled & Centered) -->
+  <g fill="none" stroke="#F4F4F5" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
     <!-- Upward Arrow -->
-    <path d="M 256 120 V 300" />
-    <path d="M 188 188 L 256 120 L 324 188" />
+    <path d="M 256 138 V 282" />
+    <path d="M 202 192 L 256 138 L 310 192" />
 
     <!-- Open Box Tray -->
-    <path d="M 190 220 H 164 C 146 220 132 234 132 252 V 380 C 132 398 146 412 164 412 H 348 C 366 412 380 398 380 380 V 252 C 380 234 366 220 348 220 H 322" />
+    <path d="M 204 218 H 182 C 168 218 156 230 156 244 V 346 C 156 360 168 372 182 372 H 330 C 344 372 356 360 356 346 V 244 C 356 230 344 218 330 218 H 308" />
   </g>
 </svg>
-
