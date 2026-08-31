@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
+import { WsProvider } from "./hooks/useWs";
 import { getAccessToken } from "./lib/api";
 import { DropBoard } from "./pages/DropBoard";
 import { Login } from "./pages/Login";
@@ -16,7 +17,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("pd:unauthorized", onUnauthorized);
   }, []);
 
-  return authed ? <>{children}</> : <Navigate to="/login" replace />;
+  return authed ? <WsProvider>{children}</WsProvider> : <Navigate to="/login" replace />;
 }
 
 export default function App() {
