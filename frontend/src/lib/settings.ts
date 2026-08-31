@@ -15,3 +15,4 @@ export function setSendOnEnter(enabled: boolean): void {
     localStorage.setItem(KEY_SEND_ON_ENTER, String(enabled));
   } catch {}
 }
+

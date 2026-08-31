@@ -11,6 +11,7 @@ function useTimelineLongPress() {
   const navigate = useNavigate();
   const timerRef = useRef<number | null>(null);
   const isLongPressRef = useRef(false);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const start = useCallback(() => {
     isLongPressRef.current = false;
@@ -32,7 +33,33 @@ function useTimelineLongPress() {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    touchStartPosRef.current = null;
   }, []);
+
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      const touch = e.touches[0];
+      if (touch) {
+        touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+      }
+      start();
+    },
+    [start],
+  );
+
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!touchStartPosRef.current) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+      const dx = Math.abs(touch.clientX - touchStartPosRef.current.x);
+      const dy = Math.abs(touch.clientY - touchStartPosRef.current.y);
+      if (dx > 10 || dy > 10) {
+        clear();
+      }
+    },
+    [clear],
+  );
 
   const onClick = useCallback((e: React.MouseEvent) => {
     if (isLongPressRef.current) {
@@ -42,13 +69,18 @@ function useTimelineLongPress() {
     }
   }, []);
 
+  const onContextMenu = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+  }, []);
+
   return {
     onMouseDown: start,
     onMouseUp: clear,
     onMouseLeave: clear,
-    onTouchStart: start,
+    onTouchStart,
     onTouchEnd: clear,
-    onTouchMove: clear,
+    onTouchMove,
+    onContextMenu,
     onClick,
   };
 }
