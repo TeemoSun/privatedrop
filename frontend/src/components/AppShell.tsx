@@ -1,9 +1,10 @@
 import { useCallback, useRef } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, LogOut, Settings, Zap } from "lucide-react";
+import { LayoutDashboard, Lock, LogOut, Settings, Zap } from "lucide-react";
 
 import { Button } from "./ui/Button";
 import { api, clearTokens, getDeviceName } from "../lib/api";
+import { unlockSecretSession } from "../lib/secretSession";
 import { cn } from "../lib/utils";
 
 function useTimelineLongPress() {
@@ -21,6 +22,7 @@ function useTimelineLongPress() {
           navigator.vibrate([40, 50, 40]);
         }
       } catch {}
+      unlockSecretSession();
       navigate("/secret");
     }, 700);
   }, [navigate]);
@@ -75,8 +77,8 @@ function SidebarNav() {
         className={({ isActive }) => navClass({ isActive: isActive || isSecret })}
         {...timelineLongPress}
       >
-        <LayoutDashboard className="h-4 w-4" />
-        {isSecret ? "隐私时间线 🔒" : "时间线"}
+        {isSecret ? <Lock className="h-4 w-4 text-primary" /> : <LayoutDashboard className="h-4 w-4" />}
+        {isSecret ? "隐私时间线" : "时间线"}
       </NavLink>
       <NavLink to="/manage" className={navClass}>
         <Settings className="h-4 w-4" />
@@ -102,9 +104,10 @@ export function AppShell() {
     <div className="fixed inset-0 flex overflow-hidden bg-background">
       <aside className="hidden w-56 shrink-0 flex-col border-r bg-card md:flex">
         <div className="border-b px-4 py-4">
-          <h1 className="text-lg font-bold tracking-tight">
-            {isSecret ? "PrivateDrop 🔒" : "PrivateDrop"}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold tracking-tight">PrivateDrop</h1>
+            {isSecret && <Lock className="h-4 w-4 text-muted-foreground" />}
+          </div>
           <p className="text-xs text-muted-foreground">{getDeviceName()}</p>
         </div>
         <div className="flex-1 px-3 py-4">
@@ -121,9 +124,8 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="shrink-0 flex items-center justify-between border-b bg-card px-4 py-2.5 md:hidden">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold">
-              {isSecret ? "PrivateDrop 🔒" : "PrivateDrop"}
-            </h1>
+            <h1 className="text-base font-bold">PrivateDrop</h1>
+            {isSecret && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
             <span className="max-w-[140px] truncate text-xs text-muted-foreground">
               {getDeviceName()}
             </span>
@@ -161,8 +163,8 @@ export function AppShell() {
             }
             {...timelineLongPress}
           >
-            <LayoutDashboard className="h-5 w-5" />
-            {isSecret ? "隐私时间线 🔒" : "时间线"}
+            {isSecret ? <Lock className="h-5 w-5" /> : <LayoutDashboard className="h-5 w-5" />}
+            {isSecret ? "隐私时间线" : "时间线"}
           </NavLink>
           <NavLink
             to="/manage"

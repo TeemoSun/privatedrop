@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { File as FileIcon, FileUp, Inbox, Plus, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { File as FileIcon, FileUp, Inbox, Lock, Plus, X } from "lucide-react";
 
 import { api, getAccessToken } from "../lib/api";
+import { isSecretUnlocked, lockSecretSession } from "../lib/secretSession";
 import { ItemCard } from "../components/ItemCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState, Spinner } from "../components/ui/Misc";
@@ -51,11 +53,59 @@ interface DropBoardProps {
 }
 
 export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardProps) {
+  const navigate = useNavigate();
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Guard against refresh or direct access to secret timeline
+  useEffect(() => {
+    if (isSecret && !isSecretUnlocked()) {
+      navigate("/timeline", { replace: true });
+    }
+  }, [isSecret, navigate]);
+
+  // Lock secret session upon unmounting/leaving
+  useEffect(() => {
+    return () => {
+      if (isSecret) {
+        lockSecretSession();
+      }
+    };
+  }, [isSecret]);
+
+  // 5-minute inactivity auto-lock for secret timeline
+  useEffect(() => {
+    if (!isSecret) return;
+
+    let timer: number;
+
+    const resetTimer = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        lockSecretSession();
+        navigate("/timeline", { replace: true });
+      }, 5 * 60 * 1000); // 5 minutes
+    };
+
+    resetTimer();
+
+    const activityEvents = ["mousedown", "mousemove", "keydown", "touchstart", "scroll", "click"];
+    const onActivity = () => resetTimer();
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, onActivity, { passive: true });
+    });
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, onActivity);
+      });
+    };
+  }, [isSecret, navigate]);
 
   const [list, setList] = useState<Item[]>([]);
   const cursorRef = useRef<string | null>(null);
@@ -313,7 +363,8 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       {isSecret && (
         <div className="mt-2 shrink-0 flex items-center justify-between rounded-md bg-muted/60 border px-3 py-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-foreground">🔒 隐私时间线</span>
+            <Lock className="h-3.5 w-3.5 text-primary" />
+            <span className="font-medium text-foreground">隐私时间线</span>
             <span>· 仅长按入口可访问，私密保存</span>
           </div>
         </div>
@@ -343,7 +394,13 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
         {list.length === 0 ? (
           <div className="flex h-full min-h-[240px] items-center justify-center">
             <EmptyState
-              icon={<Inbox className="h-10 w-10 text-muted-foreground" />}
+              icon={
+                isSecret ? (
+                  <Lock className="h-10 w-10 text-muted-foreground" />
+                ) : (
+                  <Inbox className="h-10 w-10 text-muted-foreground" />
+                )
+              }
               title={
                 isSecret
                   ? "隐私时间线暂无内容"
