@@ -435,6 +435,7 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
                 ref={fileInputRef}
                 type="file"
                 multiple
+                accept="*/*"
                 className="hidden"
                 onChange={(e) => {
                   if (e.target.files) addFiles(e.target.files);
