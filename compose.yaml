@@ -1,7 +1,6 @@
 services:
   app:
     image: pigzho/privatedrop:latest
-    pull_policy: always
     container_name: privatedrop-app
     restart: unless-stopped
     ports:
