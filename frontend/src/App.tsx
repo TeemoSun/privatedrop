@@ -30,7 +30,8 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<DropBoard />} />
+        <Route path="/" element={<DropBoard isEphemeral={true} />} />
+        <Route path="/timeline" element={<DropBoard isEphemeral={false} />} />
         <Route path="/devices" element={<Devices />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

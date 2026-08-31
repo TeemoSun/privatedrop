@@ -43,6 +43,7 @@ class FileSpec(BaseModel):
 class ItemCreate(BaseModel):
     kind: str = Field(pattern="^(file|note)$")
     note: str | None = Field(default=None, max_length=100_000)
+    is_ephemeral: bool = False
     files: list[FileSpec] = Field(default_factory=list)
 
 
@@ -72,6 +73,8 @@ class ItemOut(BaseModel):
     id: uuid.UUID
     kind: str
     note: str | None
+    is_ephemeral: bool = False
+    expires_at: datetime | None = None
     created_at: datetime
     created_by_device: uuid.UUID | None
     files: list[FileOut]

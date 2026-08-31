@@ -164,25 +164,35 @@ export const api = {
   deleteDevice: (id: string) =>
     request<void>(`/api/devices/${id}`, { method: "DELETE" }),
 
-  items: (params: { cursor?: string; limit?: number; kind?: "file" | "note" } = {}) => {
+  items: (params: {
+    cursor?: string;
+    limit?: number;
+    kind?: "file" | "note";
+    is_ephemeral?: boolean;
+  } = {}) => {
     const qs = new URLSearchParams();
     if (params.cursor) qs.set("cursor", params.cursor);
     if (params.limit) qs.set("limit", String(params.limit));
     if (params.kind) qs.set("kind", params.kind);
+    if (params.is_ephemeral !== undefined) qs.set("is_ephemeral", String(params.is_ephemeral));
     const q = qs.toString();
     return request<ItemList>(`/api/items${q ? `?${q}` : ""}`);
   },
 
-  createNote: (note: string) =>
+  createNote: (note: string, is_ephemeral = false) =>
     request<ItemCreateResponse>("/api/items", {
       method: "POST",
-      body: JSON.stringify({ kind: "note", note }),
+      body: JSON.stringify({ kind: "note", note, is_ephemeral }),
     }),
 
-  createFileItem: (specs: { file_name: string; mime_type: string; size: number; sha256: string }[], note: string | null) =>
+  createFileItem: (
+    specs: { file_name: string; mime_type: string; size: number; sha256: string }[],
+    note: string | null,
+    is_ephemeral = false,
+  ) =>
     request<ItemCreateResponse>("/api/items", {
       method: "POST",
-      body: JSON.stringify({ kind: "file", note, files: specs }),
+      body: JSON.stringify({ kind: "file", note, files: specs, is_ephemeral }),
     }),
 
   uploadComplete: (itemId: string) =>

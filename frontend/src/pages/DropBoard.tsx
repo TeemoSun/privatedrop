@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { File as FileIcon, FileUp, Inbox, Plus, X } from "lucide-react";
+import { Clock, File as FileIcon, FileUp, Inbox, Plus, X } from "lucide-react";
 
 import { api, getAccessToken } from "../lib/api";
 import { ItemCard } from "../components/ItemCard";
@@ -45,7 +45,11 @@ function putWithProgress(
   });
 }
 
-export function DropBoard() {
+interface DropBoardProps {
+  isEphemeral?: boolean;
+}
+
+export function DropBoard({ isEphemeral = false }: DropBoardProps) {
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -139,7 +143,7 @@ export function DropBoard() {
   // Initial load
   useEffect(() => {
     let cancelled = false;
-    void api.items({ limit: 30 }).then((page) => {
+    void api.items({ limit: 30, is_ephemeral: isEphemeral }).then((page) => {
       if (cancelled) return;
       // Server returns newest-first, reverse to display oldest-to-newest (top-to-bottom)
       setList([...page.items].reverse());
@@ -152,7 +156,7 @@ export function DropBoard() {
     return () => {
       cancelled = true;
     };
-  }, [reloadTick, scrollToBottom]);
+  }, [reloadTick, scrollToBottom, isEphemeral]);
 
   // Load older messages (at top)
   const loadOlder = useCallback(async () => {
@@ -163,7 +167,7 @@ export function DropBoard() {
 
     setLoadingMore(true);
     try {
-      const page = await api.items({ cursor: cursorRef.current, limit: 20 });
+      const page = await api.items({ cursor: cursorRef.current, limit: 20, is_ephemeral: isEphemeral });
       const olderItems = [...page.items].reverse();
       setList((prev) => [...olderItems, ...prev]);
       cursorRef.current = page.next_cursor;
@@ -179,14 +183,16 @@ export function DropBoard() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore]);
+  }, [loadingMore, isEphemeral]);
 
   // Real-time synchronization
   useWs({
     onEvent: (event) => {
       if (event.type === "item_created") {
-        setList((prev) => [...prev.filter((i) => i.id !== event.item.id), event.item]);
-        setTimeout(() => scrollToBottom("smooth"), 50);
+        if (Boolean(event.item.is_ephemeral) === Boolean(isEphemeral)) {
+          setList((prev) => [...prev.filter((i) => i.id !== event.item.id), event.item]);
+          setTimeout(() => scrollToBottom("smooth"), 50);
+        }
       } else if (event.type === "item_deleted") {
         setList((prev) => prev.filter((i) => i.id !== event.id));
       }
@@ -214,7 +220,7 @@ export function DropBoard() {
           })),
         );
 
-        const created = await api.createFileItem(specs, trimmedNote || null);
+        const created = await api.createFileItem(specs, trimmedNote || null, isEphemeral);
         let allOk = true;
 
         const uploads = created.files.map(async (target, i) => {
@@ -256,7 +262,7 @@ export function DropBoard() {
         setReloadTick((t) => t + 1);
         setTimeout(() => scrollToBottom("smooth"), 100);
       } else if (trimmedNote) {
-        await api.createNote(trimmedNote);
+        await api.createNote(trimmedNote, isEphemeral);
         setNote("");
         setReloadTick((t) => t + 1);
         setTimeout(() => scrollToBottom("smooth"), 100);
@@ -294,6 +300,14 @@ export function DropBoard() {
         </div>
       )}
 
+      {/* 临时中转提示横幅 */}
+      {isEphemeral && (
+        <div className="mt-2 shrink-0 flex items-center gap-1.5 rounded-md bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400">
+          <Clock className="h-3.5 w-3.5 shrink-0" />
+          <span>临时中转：所有内容与文件仅保留 24 小时，到期自动物理销毁</span>
+        </div>
+      )}
+
       {/* 时间线消息流（可滚动区域，越往上越老） */}
       <div
         ref={scrollContainerRef}
@@ -319,8 +333,12 @@ export function DropBoard() {
           <div className="flex h-full min-h-[240px] items-center justify-center">
             <EmptyState
               icon={<Inbox className="h-10 w-10 text-muted-foreground" />}
-              title="还没有任何内容"
-              hint="在下方发送一条笔记，或拖拽 / 点击加号添加文件"
+              title={isEphemeral ? "中转站空空如也" : "还没有任何内容"}
+              hint={
+                isEphemeral
+                  ? "在此发送的笔记或文件仅保留 24 小时，到期自动清理"
+                  : "在此发送的笔记或文件将永久保存，其他设备可随时查看"
+              }
             />
           </div>
         ) : (

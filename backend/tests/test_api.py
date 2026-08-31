@@ -428,3 +428,89 @@ async def test_cleanup_preserves_notes_and_ready_files(client, monkeypatch) -> N
         assert old_note.id in ids  # 笔记绝不被清理
         assert old_ready.id in ids  # 已完成条目不被清理
         assert old_draft.id not in ids
+
+
+async def test_ephemeral_items_flow(client) -> None:
+    tokens = await login(client)
+    headers = auth_headers(tokens)
+
+    # 1. Create ephemeral note
+    resp = await client.post(
+        "/api/items",
+        json={"kind": "note", "note": "ephemeral secret note", "is_ephemeral": True},
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    ephemeral_id = resp.json()["item_id"]
+
+    # 2. Create permanent note
+    resp = await client.post(
+        "/api/items",
+        json={"kind": "note", "note": "permanent note", "is_ephemeral": False},
+        headers=headers,
+    )
+    assert resp.status_code == 201, resp.text
+    permanent_id = resp.json()["item_id"]
+
+    # 3. Filter by is_ephemeral=true
+    resp = await client.get("/api/items?is_ephemeral=true", headers=headers)
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert any(i["id"] == ephemeral_id for i in items)
+    assert not any(i["id"] == permanent_id for i in items)
+    ephemeral_item = next(i for i in items if i["id"] == ephemeral_id)
+    assert ephemeral_item["is_ephemeral"] is True
+    assert ephemeral_item["expires_at"] is not None
+
+    # 4. Filter by is_ephemeral=false
+    resp = await client.get("/api/items?is_ephemeral=false", headers=headers)
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert any(i["id"] == permanent_id for i in items)
+    assert not any(i["id"] == ephemeral_id for i in items)
+
+
+async def test_cleanup_removes_expired_ephemeral_items(client, monkeypatch) -> None:
+    import app.cleanup as cleanup
+    import app.models as models
+
+    tokens = await login(client)
+
+    now = datetime.now(timezone.utc)
+    expired_ephemeral = models.DropItem(
+        kind="note",
+        note="expired note",
+        created_by_device=tokens["device_id"],
+        is_ephemeral=True,
+        expires_at=now - timedelta(hours=1),
+    )
+    active_ephemeral = models.DropItem(
+        kind="note",
+        note="active note",
+        created_by_device=tokens["device_id"],
+        is_ephemeral=True,
+        expires_at=now + timedelta(hours=23),
+    )
+    permanent_note = models.DropItem(
+        kind="note",
+        note="permanent note",
+        created_by_device=tokens["device_id"],
+        is_ephemeral=False,
+        expires_at=None,
+    )
+
+    async with db_module.SessionLocal() as s:
+        s.add_all([expired_ephemeral, active_ephemeral, permanent_note])
+        await s.commit()
+
+    monkeypatch.setattr(cleanup, "SessionLocal", db_module.SessionLocal)
+
+    removed = await cleanup._cleanup_expired_ephemeral_items()
+    assert removed == 1
+
+    async with db_module.SessionLocal() as s:
+        ids = [row[0] for row in (await s.execute(select(models.DropItem.id))).all()]
+        assert expired_ephemeral.id not in ids
+        assert active_ephemeral.id in ids
+        assert permanent_note.id in ids
+

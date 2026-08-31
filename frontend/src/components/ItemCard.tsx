@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, Download, File as FileIcon, FileText, Trash2 } from "lucide-react";
+import { Check, Clock, Copy, Download, File as FileIcon, FileText, Trash2 } from "lucide-react";
 
 import { api } from "../lib/api";
 import { fromNow } from "../lib/format";
@@ -10,6 +10,15 @@ import { Button } from "./ui/Button";
 interface ItemCardProps {
   item: Item;
   onDeleted: (id: string) => void;
+}
+
+function formatRemaining(expiresAt: string): string {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return "即将销毁";
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) return `剩 ${hours} 小时`;
+  return `剩 ${Math.max(1, minutes)} 分钟`;
 }
 
 export function ItemCard({ item, onDeleted }: ItemCardProps) {
@@ -58,6 +67,15 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
             <FileIcon className="h-3.5 w-3.5" />
           )}
           <span>{fromNow(item.created_at)}</span>
+          {item.is_ephemeral && (
+            <span
+              className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400"
+              title={item.expires_at ? `到期时间: ${new Date(item.expires_at).toLocaleString()}` : "24小时后自动销毁"}
+            >
+              <Clock className="h-3 w-3" />
+              <span>{item.expires_at ? formatRemaining(item.expires_at) : "24h 临时"}</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {item.note && (

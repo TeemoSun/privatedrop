@@ -1,6 +1,6 @@
 import base64
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
@@ -34,6 +34,8 @@ def _item_out(item: DropItem) -> ItemOut:
         id=item.id,
         kind=item.kind,
         note=item.note,
+        is_ephemeral=item.is_ephemeral,
+        expires_at=item.expires_at,
         created_at=item.created_at,
         created_by_device=item.created_by_device,
         files=[FileOut.model_validate(f) for f in item.files],
@@ -84,6 +86,7 @@ async def list_items(
     cursor: str | None = Query(default=None),
     limit: int = Query(default=_PAGE_SIZE, ge=1, le=100),
     kind: str | None = Query(default=None, pattern="^(file|note)$"),
+    is_ephemeral: bool | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
     _: tuple = Depends(require_auth),
 ) -> ItemList:
@@ -94,6 +97,8 @@ async def list_items(
     )
     if kind:
         stmt_base = stmt_base.where(DropItem.kind == kind)
+    if is_ephemeral is not None:
+        stmt_base = stmt_base.where(DropItem.is_ephemeral == is_ephemeral)
 
     ready_items: list[DropItem] = []
     raw_cursor = cursor
@@ -135,10 +140,19 @@ async def create_item(
     auth: tuple = Depends(require_auth),
 ) -> ItemCreateResponse:
     device_id = auth[0]
+    now = utc_now()
+    expires_at = now + timedelta(hours=24) if body.is_ephemeral else None
+
     if body.kind == "note":
         if body.note is None or not body.note.strip():
             raise HTTPException(status_code=422, detail="note content required")
-        item = DropItem(kind="note", note=body.note, created_by_device=device_id)
+        item = DropItem(
+            kind="note",
+            note=body.note,
+            created_by_device=device_id,
+            is_ephemeral=body.is_ephemeral,
+            expires_at=expires_at,
+        )
         session.add(item)
         await session.commit()
         item_out = await _fetch_item_out(session, item.id)
@@ -154,7 +168,13 @@ async def create_item(
         if spec.size > settings.max_file_size:
             raise HTTPException(status_code=413, detail="file exceeds MAX_FILE_SIZE")
 
-    item = DropItem(kind="file", note=body.note, created_by_device=device_id)
+    item = DropItem(
+        kind="file",
+        note=body.note,
+        created_by_device=device_id,
+        is_ephemeral=body.is_ephemeral,
+        expires_at=expires_at,
+    )
     session.add(item)
     await session.flush()
 

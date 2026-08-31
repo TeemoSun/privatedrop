@@ -1,7 +1,19 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text, Uuid, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    Uuid,
+    func,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -28,6 +40,8 @@ class DropItem(Base):
     __table_args__ = (
         CheckConstraint("kind IN ('file', 'note')", name="ck_drop_items_kind"),
         Index("ix_drop_items_created_id", "created_at", "id"),
+        Index("ix_drop_items_is_ephemeral_created", "is_ephemeral", "created_at", "id"),
+        Index("ix_drop_items_expires_at", "expires_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -36,6 +50,12 @@ class DropItem(Base):
     )
     kind: Mapped[str] = mapped_column(String(16))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_ephemeral: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=_utc_now,
