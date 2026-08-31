@@ -122,7 +122,7 @@ export function DropZone({ onCreated }: DropZoneProps) {
     <div className="flex flex-col gap-3">
       <div
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors",
+          "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 md:px-6 md:py-10 text-center transition-colors select-none",
           dragActive ? "border-primary bg-accent" : "border-muted-foreground/30 hover:border-primary/60",
         )}
         onDragOver={(e) => {
@@ -138,8 +138,8 @@ export function DropZone({ onCreated }: DropZoneProps) {
         onClick={() => inputRef.current?.click()}
       >
         <FileUp className="h-8 w-8 text-muted-foreground" />
-        <p className="text-sm font-medium">拖拽文件到这里，或点击选择</p>
-        <p className="text-xs text-muted-foreground">支持大文件、本地哈希去重秒传</p>
+        <p className="text-sm font-medium">点击选择或拖拽文件到这里</p>
+        <p className="text-xs text-muted-foreground">支持照片、视频与任意大文件，秒传去重</p>
         <input
           ref={inputRef}
           type="file"

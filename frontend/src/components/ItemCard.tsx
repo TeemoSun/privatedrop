@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, File as FileIcon, FileText, Trash2 } from "lucide-react";
+import { Check, Copy, Download, File as FileIcon, FileText, Trash2 } from "lucide-react";
 
 import { api } from "../lib/api";
 import { fromNow } from "../lib/format";
@@ -15,6 +15,7 @@ interface ItemCardProps {
 export function ItemCard({ item, onDeleted }: ItemCardProps) {
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const download = async (fileId: string) => {
     setDownloading(true);
@@ -36,6 +37,17 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
     }
   };
 
+  const copyNote = async () => {
+    if (!item.note) return;
+    try {
+      await navigator.clipboard.writeText(item.note);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Fallback
+    }
+  };
+
   return (
     <div className="group rounded-lg border bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -47,19 +59,40 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
           )}
           <span>{fromNow(item.created_at)}</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-          onClick={remove}
-          disabled={deleting}
-          title="删除"
-        >
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {item.note && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={copyNote}
+              title={copied ? "已复制" : "复制文本"}
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-green-600" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+            onClick={remove}
+            disabled={deleting}
+            title="删除"
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
       </div>
 
-      {item.note && <p className="mb-2 whitespace-pre-wrap text-sm leading-relaxed">{item.note}</p>}
+      {item.note && (
+        <p className="mb-2 whitespace-pre-wrap break-words break-all text-sm leading-relaxed">
+          {item.note}
+        </p>
+      )}
 
       {item.kind === "file" && (
         <ul className="flex flex-col gap-1.5">

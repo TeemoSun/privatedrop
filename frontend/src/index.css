@@ -26,9 +26,12 @@
 
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 }

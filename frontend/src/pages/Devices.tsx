@@ -73,7 +73,7 @@ export function Devices() {
                   {editing === device.id ? (
                     <div className="flex items-center gap-2">
                       <input
-                        className="h-8 flex-1 rounded-md border border-input bg-transparent px-2 text-sm"
+                        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 text-base md:text-sm"
                         value={name}
                         maxLength={255}
                         onChange={(e) => setName(e.target.value)}

@@ -55,21 +55,29 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b px-4 py-3 md:hidden">
-          <h1 className="text-base font-bold">PrivateDrop</h1>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-card/90 px-4 py-3 backdrop-blur md:hidden">
+          <div className="flex items-center gap-2">
+            <h1 className="text-base font-bold">PrivateDrop</h1>
+            <span className="max-w-[140px] truncate text-xs text-muted-foreground">
+              {getDeviceName()}
+            </span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="退出登录">
             <LogOut className="h-4 w-4" />
           </Button>
         </header>
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-4 pb-24 md:py-6 md:pb-6">
           <Outlet />
         </main>
-        <nav className="flex items-center justify-around border-t bg-card py-2 md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t bg-card/90 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur md:hidden">
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
-              cn("flex flex-col items-center gap-0.5 px-4 py-1 text-xs", isActive ? "text-primary" : "text-muted-foreground")
+              cn(
+                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors",
+                isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
+              )
             }
           >
             <LayoutDashboard className="h-5 w-5" />
@@ -78,7 +86,10 @@ export function AppShell() {
           <NavLink
             to="/devices"
             className={({ isActive }) =>
-              cn("flex flex-col items-center gap-0.5 px-4 py-1 text-xs", isActive ? "text-primary" : "text-muted-foreground")
+              cn(
+                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors",
+                isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
+              )
             }
           >
             <Smartphone className="h-5 w-5" />
