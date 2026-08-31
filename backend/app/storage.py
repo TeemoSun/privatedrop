@@ -145,3 +145,48 @@ def cleanup_temp_files(max_age_seconds: int = 3600) -> int:
             except Exception as e:
                 logger.warning("Failed to remove temp file %s: %s", entry, e)
     return removed
+
+
+def scan_physical_files() -> list[dict]:
+    ensure_storage_dirs()
+    results = []
+    root = files_dir()
+    for path in root.rglob("*"):
+        if path.is_file():
+            try:
+                stat = path.stat()
+                sha = path.name.lower()
+                rel_path = str(path.relative_to(root))
+                results.append(
+                    {
+                        "sha256": sha,
+                        "size": stat.st_size,
+                        "path": rel_path,
+                        "full_path": path,
+                    }
+                )
+            except Exception as e:
+                logger.warning("Failed to stat physical file %s: %s", path, e)
+    return results
+
+
+def remove_orphan_file(full_path: Path) -> bool:
+    try:
+        if full_path.is_file():
+            full_path.unlink(missing_ok=True)
+            parent = full_path.parent
+            root = files_dir()
+            while parent != root and parent.is_relative_to(root):
+                try:
+                    if not any(parent.iterdir()):
+                        parent.rmdir()
+                        parent = parent.parent
+                    else:
+                        break
+                except Exception:
+                    break
+            return True
+    except Exception as e:
+        logger.warning("Failed to remove orphan file %s: %s", full_path, e)
+    return False
+

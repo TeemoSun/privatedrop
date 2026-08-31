@@ -5,6 +5,8 @@ import type {
   Item,
   ItemCreateResponse,
   ItemList,
+  StorageCheckResult,
+  StorageFixResult,
   TokenResponse,
 } from "./types";
 import { generateDeviceId } from "./utils";
@@ -216,4 +218,9 @@ export const api = {
     request<void>(`/api/items/${itemId}/purge`, { method: "DELETE" }),
 
   emptyTrash: () => request<void>("/api/items/trash/empty", { method: "DELETE" }),
+
+  storageCheck: () => request<StorageCheckResult>("/api/maintenance/storage-check"),
+
+  storageFix: () =>
+    request<StorageFixResult>("/api/maintenance/storage-fix", { method: "POST" }),
 };

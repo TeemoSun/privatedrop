@@ -57,3 +57,40 @@ export interface DownloadUrlResponse {
 export type WsEvent =
   | { type: "item_created"; item: Item }
   | { type: "item_deleted"; id: string };
+
+export interface MissingFileRecord {
+  item_id: string;
+  item_kind: string;
+  item_note: string | null;
+  item_created_at: string;
+  item_is_ephemeral: boolean;
+  item_is_secret: boolean;
+  item_deleted_at: string | null;
+  file_id: string;
+  file_name: string;
+  file_size: number;
+  sha256: string;
+}
+
+export interface OrphanFileRecord {
+  sha256: string;
+  size: number;
+  path: string;
+}
+
+export interface StorageCheckResult {
+  status: "healthy" | "issues_found";
+  total_db_items: number;
+  total_db_files: number;
+  total_disk_files: number;
+  total_disk_size: number;
+  missing_files: MissingFileRecord[];
+  orphan_files: OrphanFileRecord[];
+}
+
+export interface StorageFixResult {
+  deleted_orphan_files_count: number;
+  deleted_orphan_files_size: number;
+  deleted_broken_items_count: number;
+}
+

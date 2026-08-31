@@ -683,4 +683,114 @@ async def test_secret_timeline_flow(client) -> None:
     assert any(i["id"] == sec_id for i in resp_s.json()["items"])
 
 
+async def test_storage_check_and_fix(client: AsyncClient) -> None:
+    tokens = await login(client)
+    headers = auth_headers(tokens)
+
+    # 1. Initial empty storage check
+    resp = await client.get("/api/maintenance/storage-check", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "healthy"
+    assert data["missing_files"] == []
+    assert data["orphan_files"] == []
+
+    # 2. Create and upload a valid file item
+    content = b"valid file content for storage check"
+    sha = checksum_sha256(content)
+    create_resp = await client.post(
+        "/api/items",
+        json={
+            "kind": "file",
+            "files": [
+                {
+                    "file_name": "valid.txt",
+                    "mime_type": "text/plain",
+                    "size": len(content),
+                    "sha256": sha,
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert create_resp.status_code == 201
+    item_id = create_resp.json()["item_id"]
+    file_id = create_resp.json()["files"][0]["file_id"]
+
+    upload_resp = await client.put(
+        f"/api/items/{item_id}/files/{file_id}/upload",
+        content=content,
+        headers=headers,
+    )
+    assert upload_resp.status_code == 200
+
+    complete_resp = await client.post(
+        f"/api/items/{item_id}/upload-complete",
+        headers=headers,
+    )
+    assert complete_resp.status_code == 200
+
+    # 3. Check again -> healthy
+    resp = await client.get("/api/maintenance/storage-check", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "healthy"
+    assert data["total_db_items"] == 1
+    assert data["total_db_files"] == 1
+    assert data["total_disk_files"] == 1
+    assert data["missing_files"] == []
+    assert data["orphan_files"] == []
+
+    # 4. Inject an orphan file directly onto disk
+    orphan_content = b"orphan file content without db record"
+    orphan_sha = checksum_sha256(orphan_content)
+    orphan_path = storage_module.get_file_path(orphan_sha)
+    orphan_path.parent.mkdir(parents=True, exist_ok=True)
+    orphan_path.write_bytes(orphan_content)
+
+    # 5. Delete physical file of the valid item to create a missing file situation
+    valid_file_path = storage_module.get_file_path(sha)
+    assert valid_file_path.is_file()
+    valid_file_path.unlink()
+
+    # 6. Check -> issues found
+    resp = await client.get("/api/maintenance/storage-check", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "issues_found"
+    assert len(data["missing_files"]) == 1
+    assert data["missing_files"][0]["item_id"] == item_id
+    assert data["missing_files"][0]["file_name"] == "valid.txt"
+    assert len(data["orphan_files"]) == 1
+    assert data["orphan_files"][0]["sha256"] == orphan_sha
+
+    # 7. Call fix endpoint
+    fix_resp = await client.post("/api/maintenance/storage-fix", headers=headers)
+    assert fix_resp.status_code == 200
+    fix_data = fix_resp.json()
+    assert fix_data["deleted_orphan_files_count"] == 1
+    assert fix_data["deleted_orphan_files_size"] == len(orphan_content)
+    assert fix_data["deleted_broken_items_count"] == 1
+
+    # Verify orphan file removed from disk
+    assert not orphan_path.exists()
+
+    # Verify broken item removed from DB
+    get_item_resp = await client.get("/api/items", headers=headers)
+    assert get_item_resp.status_code == 200
+    assert len(get_item_resp.json()["items"]) == 0
+
+    # 8. Check again -> healthy
+    resp_after = await client.get("/api/maintenance/storage-check", headers=headers)
+    assert resp_after.status_code == 200
+    data_after = resp_after.json()
+    assert data_after["status"] == "healthy"
+    assert data_after["total_db_items"] == 0
+    assert data_after["total_db_files"] == 0
+    assert data_after["total_disk_files"] == 0
+    assert data_after["missing_files"] == []
+    assert data_after["orphan_files"] == []
+
+
+
 

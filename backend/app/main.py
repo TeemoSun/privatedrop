@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from app.api import auth, devices, items, ws
+from app.api import auth, devices, items, maintenance, ws
 from app.cleanup import cleanup_job
 from app.config import settings
 from app.security import hash_password
@@ -78,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(devices.router)
     app.include_router(items.router)
+    app.include_router(maintenance.router)
     app.include_router(ws.router)
 
     if STATIC_DIR.is_dir():

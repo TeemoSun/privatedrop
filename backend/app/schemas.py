@@ -93,3 +93,40 @@ class ItemList(BaseModel):
 class DownloadUrlResponse(BaseModel):
     url: str
     expires_at: datetime
+
+
+class MissingFileItem(BaseModel):
+    item_id: uuid.UUID
+    item_kind: str
+    item_note: str | None = None
+    item_created_at: datetime
+    item_is_ephemeral: bool = False
+    item_is_secret: bool = False
+    item_deleted_at: datetime | None = None
+    file_id: uuid.UUID
+    file_name: str
+    file_size: int
+    sha256: str
+
+
+class OrphanFileItem(BaseModel):
+    sha256: str
+    size: int
+    path: str
+
+
+class StorageCheckResponse(BaseModel):
+    status: str  # "healthy" | "issues_found"
+    total_db_items: int
+    total_db_files: int
+    total_disk_files: int
+    total_disk_size: int
+    missing_files: list[MissingFileItem]
+    orphan_files: list[OrphanFileItem]
+
+
+class StorageFixResponse(BaseModel):
+    deleted_orphan_files_count: int
+    deleted_orphan_files_size: int
+    deleted_broken_items_count: int
+
