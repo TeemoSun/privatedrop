@@ -12,6 +12,7 @@ export interface Item {
   kind: "file" | "note";
   note: string | null;
   is_ephemeral?: boolean;
+  is_secret?: boolean;
   expires_at?: string | null;
   deleted_at?: string | null;
   created_at: string;

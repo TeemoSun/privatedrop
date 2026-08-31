@@ -625,3 +625,62 @@ async def test_cleanup_removes_30_day_expired_trash_items(client, monkeypatch) -
         assert active_trash.id in ids
 
 
+async def test_secret_timeline_flow(client) -> None:
+    tokens = await login(client)
+    headers = auth_headers(tokens)
+
+    # 1. Create a regular note and a secret note
+    resp_reg = await client.post(
+        "/api/items",
+        json={"kind": "note", "note": "public timeline note", "is_secret": False},
+        headers=headers,
+    )
+    assert resp_reg.status_code == 201
+    reg_id = resp_reg.json()["item_id"]
+
+    resp_sec = await client.post(
+        "/api/items",
+        json={"kind": "note", "note": "secret timeline note", "is_secret": True},
+        headers=headers,
+    )
+    assert resp_sec.status_code == 201
+    sec_id = resp_sec.json()["item_id"]
+
+    # 2. Default GET /api/items only returns non-secret items
+    resp = await client.get("/api/items", headers=headers)
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert any(i["id"] == reg_id for i in items)
+    assert not any(i["id"] == sec_id for i in items)
+
+    # 3. GET /api/items?is_secret=true only returns secret items
+    resp_s = await client.get("/api/items?is_secret=true", headers=headers)
+    assert resp_s.status_code == 200
+    sec_items = resp_s.json()["items"]
+    assert any(i["id"] == sec_id for i in sec_items)
+    assert not any(i["id"] == reg_id for i in sec_items)
+    assert sec_items[0]["is_secret"] is True
+
+    # 4. Soft delete secret item -> enters general trash
+    del_resp = await client.delete(f"/api/items/{sec_id}", headers=headers)
+    assert del_resp.status_code == 204
+
+    trash_resp = await client.get("/api/items/trash", headers=headers)
+    assert trash_resp.status_code == 200
+    assert any(i["id"] == sec_id for i in trash_resp.json())
+
+    # 5. Restore secret item from trash -> back to secret timeline
+    restore_resp = await client.post(f"/api/items/{sec_id}/restore", headers=headers)
+    assert restore_resp.status_code == 200
+    assert restore_resp.json()["is_secret"] is True
+    assert restore_resp.json()["deleted_at"] is None
+
+    # Verify back in secret timeline and not in regular timeline
+    resp = await client.get("/api/items", headers=headers)
+    assert not any(i["id"] == sec_id for i in resp.json()["items"])
+
+    resp_s = await client.get("/api/items?is_secret=true", headers=headers)
+    assert any(i["id"] == sec_id for i in resp_s.json()["items"])
+
+
+

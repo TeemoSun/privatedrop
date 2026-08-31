@@ -1,14 +1,64 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useCallback, useRef } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, LogOut, Settings, Zap } from "lucide-react";
 
 import { Button } from "./ui/Button";
 import { api, clearTokens, getDeviceName } from "../lib/api";
 import { cn } from "../lib/utils";
 
+function useTimelineLongPress() {
+  const navigate = useNavigate();
+  const timerRef = useRef<number | null>(null);
+  const isLongPressRef = useRef(false);
+
+  const start = useCallback(() => {
+    isLongPressRef.current = false;
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      isLongPressRef.current = true;
+      try {
+        if ("vibrate" in navigator) {
+          navigator.vibrate([40, 50, 40]);
+        }
+      } catch {}
+      navigate("/secret");
+    }, 700);
+  }, [navigate]);
+
+  const clear = useCallback(() => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const onClick = useCallback((e: React.MouseEvent) => {
+    if (isLongPressRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      isLongPressRef.current = false;
+    }
+  }, []);
+
+  return {
+    onMouseDown: start,
+    onMouseUp: clear,
+    onMouseLeave: clear,
+    onTouchStart: start,
+    onTouchEnd: clear,
+    onTouchMove: clear,
+    onClick,
+  };
+}
+
 function SidebarNav() {
+  const timelineLongPress = useTimelineLongPress();
+  const location = useLocation();
+  const isSecret = location.pathname === "/secret";
+
   const navClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors select-none",
       isActive
         ? "bg-accent text-accent-foreground"
         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
@@ -20,9 +70,13 @@ function SidebarNav() {
         <Zap className="h-4 w-4" />
         临时中转
       </NavLink>
-      <NavLink to="/timeline" className={navClass}>
+      <NavLink
+        to="/timeline"
+        className={({ isActive }) => navClass({ isActive: isActive || isSecret })}
+        {...timelineLongPress}
+      >
         <LayoutDashboard className="h-4 w-4" />
-        时间线
+        {isSecret ? "隐私时间线 🔒" : "时间线"}
       </NavLink>
       <NavLink to="/manage" className={navClass}>
         <Settings className="h-4 w-4" />
@@ -40,11 +94,17 @@ function handleLogout() {
 }
 
 export function AppShell() {
+  const location = useLocation();
+  const isSecret = location.pathname === "/secret";
+  const timelineLongPress = useTimelineLongPress();
+
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-background">
       <aside className="hidden w-56 shrink-0 flex-col border-r bg-card md:flex">
         <div className="border-b px-4 py-4">
-          <h1 className="text-lg font-bold tracking-tight">PrivateDrop</h1>
+          <h1 className="text-lg font-bold tracking-tight">
+            {isSecret ? "PrivateDrop 🔒" : "PrivateDrop"}
+          </h1>
           <p className="text-xs text-muted-foreground">{getDeviceName()}</p>
         </div>
         <div className="flex-1 px-3 py-4">
@@ -61,7 +121,9 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="shrink-0 flex items-center justify-between border-b bg-card px-4 py-2.5 md:hidden">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold">PrivateDrop</h1>
+            <h1 className="text-base font-bold">
+              {isSecret ? "PrivateDrop 🔒" : "PrivateDrop"}
+            </h1>
             <span className="max-w-[140px] truncate text-xs text-muted-foreground">
               {getDeviceName()}
             </span>
@@ -81,7 +143,7 @@ export function AppShell() {
             end
             className={({ isActive }) =>
               cn(
-                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors",
+                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors select-none",
                 isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
               )
             }
@@ -93,19 +155,20 @@ export function AppShell() {
             to="/timeline"
             className={({ isActive }) =>
               cn(
-                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors",
-                isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
+                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors select-none",
+                isActive || isSecret ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
               )
             }
+            {...timelineLongPress}
           >
             <LayoutDashboard className="h-5 w-5" />
-            时间线
+            {isSecret ? "隐私时间线 🔒" : "时间线"}
           </NavLink>
           <NavLink
             to="/manage"
             className={({ isActive }) =>
               cn(
-                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors",
+                "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors select-none",
                 isActive ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
               )
             }

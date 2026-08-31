@@ -169,30 +169,33 @@ export const api = {
     limit?: number;
     kind?: "file" | "note";
     is_ephemeral?: boolean;
+    is_secret?: boolean;
   } = {}) => {
     const qs = new URLSearchParams();
     if (params.cursor) qs.set("cursor", params.cursor);
     if (params.limit) qs.set("limit", String(params.limit));
     if (params.kind) qs.set("kind", params.kind);
     if (params.is_ephemeral !== undefined) qs.set("is_ephemeral", String(params.is_ephemeral));
+    if (params.is_secret !== undefined) qs.set("is_secret", String(params.is_secret));
     const q = qs.toString();
     return request<ItemList>(`/api/items${q ? `?${q}` : ""}`);
   },
 
-  createNote: (note: string, is_ephemeral = false) =>
+  createNote: (note: string, is_ephemeral = false, is_secret = false) =>
     request<ItemCreateResponse>("/api/items", {
       method: "POST",
-      body: JSON.stringify({ kind: "note", note, is_ephemeral }),
+      body: JSON.stringify({ kind: "note", note, is_ephemeral, is_secret }),
     }),
 
   createFileItem: (
     specs: { file_name: string; mime_type: string; size: number; sha256: string }[],
     note: string | null,
     is_ephemeral = false,
+    is_secret = false,
   ) =>
     request<ItemCreateResponse>("/api/items", {
       method: "POST",
-      body: JSON.stringify({ kind: "file", note, files: specs, is_ephemeral }),
+      body: JSON.stringify({ kind: "file", note, files: specs, is_ephemeral, is_secret }),
     }),
 
   uploadComplete: (itemId: string) =>

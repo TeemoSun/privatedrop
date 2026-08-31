@@ -47,9 +47,10 @@ function putWithProgress(
 
 interface DropBoardProps {
   isEphemeral?: boolean;
+  isSecret?: boolean;
 }
 
-export function DropBoard({ isEphemeral = false }: DropBoardProps) {
+export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardProps) {
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -143,7 +144,7 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
   // Initial load
   useEffect(() => {
     let cancelled = false;
-    void api.items({ limit: 30, is_ephemeral: isEphemeral }).then((page) => {
+    void api.items({ limit: 30, is_ephemeral: isEphemeral, is_secret: isSecret }).then((page) => {
       if (cancelled) return;
       // Server returns newest-first, reverse to display oldest-to-newest (top-to-bottom)
       setList([...page.items].reverse());
@@ -156,7 +157,7 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
     return () => {
       cancelled = true;
     };
-  }, [reloadTick, scrollToBottom, isEphemeral]);
+  }, [reloadTick, scrollToBottom, isEphemeral, isSecret]);
 
   // Load older messages (at top)
   const loadOlder = useCallback(async () => {
@@ -167,7 +168,12 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
 
     setLoadingMore(true);
     try {
-      const page = await api.items({ cursor: cursorRef.current, limit: 20, is_ephemeral: isEphemeral });
+      const page = await api.items({
+        cursor: cursorRef.current,
+        limit: 20,
+        is_ephemeral: isEphemeral,
+        is_secret: isSecret,
+      });
       const olderItems = [...page.items].reverse();
       setList((prev) => [...olderItems, ...prev]);
       cursorRef.current = page.next_cursor;
@@ -183,13 +189,16 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, isEphemeral]);
+  }, [loadingMore, isEphemeral, isSecret]);
 
   // Real-time synchronization
   useWs({
     onEvent: (event) => {
       if (event.type === "item_created") {
-        if (Boolean(event.item.is_ephemeral) === Boolean(isEphemeral)) {
+        if (
+          Boolean(event.item.is_ephemeral) === Boolean(isEphemeral) &&
+          Boolean(event.item.is_secret) === Boolean(isSecret)
+        ) {
           setList((prev) => [...prev.filter((i) => i.id !== event.item.id), event.item]);
           setTimeout(() => scrollToBottom("smooth"), 50);
         }
@@ -220,7 +229,7 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
           })),
         );
 
-        const created = await api.createFileItem(specs, trimmedNote || null, isEphemeral);
+        const created = await api.createFileItem(specs, trimmedNote || null, isEphemeral, isSecret);
         let allOk = true;
 
         const uploads = created.files.map(async (target, i) => {
@@ -262,7 +271,7 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
         setReloadTick((t) => t + 1);
         setTimeout(() => scrollToBottom("smooth"), 100);
       } else if (trimmedNote) {
-        await api.createNote(trimmedNote, isEphemeral);
+        await api.createNote(trimmedNote, isEphemeral, isSecret);
         setNote("");
         setReloadTick((t) => t + 1);
         setTimeout(() => scrollToBottom("smooth"), 100);
@@ -300,6 +309,16 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
         </div>
       )}
 
+      {/* 隐私时间线提示 */}
+      {isSecret && (
+        <div className="mt-2 shrink-0 flex items-center justify-between rounded-md bg-muted/60 border px-3 py-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-foreground">🔒 隐私时间线</span>
+            <span>· 仅长按入口可访问，私密保存</span>
+          </div>
+        </div>
+      )}
+
       {/* 时间线消息流（可滚动区域，越往上越老） */}
       <div
         ref={scrollContainerRef}
@@ -325,11 +344,19 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
           <div className="flex h-full min-h-[240px] items-center justify-center">
             <EmptyState
               icon={<Inbox className="h-10 w-10 text-muted-foreground" />}
-              title={isEphemeral ? "中转站空空如也" : "还没有任何内容"}
+              title={
+                isSecret
+                  ? "隐私时间线暂无内容"
+                  : isEphemeral
+                    ? "中转站空空如也"
+                    : "还没有任何内容"
+              }
               hint={
-                isEphemeral
-                  ? "在此发送的笔记或文件仅保留 24 小时，到期自动清理"
-                  : "在此发送的笔记或文件将永久保存，其他设备可随时查看"
+                isSecret
+                  ? "在此发送的笔记或文件仅在此隐私空间展示，在外部不可见"
+                  : isEphemeral
+                    ? "在此发送的笔记或文件仅保留 24 小时，到期自动清理"
+                    : "在此发送的笔记或文件将永久保存，其他设备可随时查看"
               }
             />
           </div>

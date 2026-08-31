@@ -41,6 +41,7 @@ class DropItem(Base):
         CheckConstraint("kind IN ('file', 'note')", name="ck_drop_items_kind"),
         Index("ix_drop_items_created_id", "created_at", "id"),
         Index("ix_drop_items_is_ephemeral_created", "is_ephemeral", "created_at", "id"),
+        Index("ix_drop_items_is_secret_created", "is_secret", "created_at", "id"),
         Index("ix_drop_items_expires_at", "expires_at"),
         Index("ix_drop_items_deleted_at", "deleted_at"),
     )
@@ -52,6 +53,9 @@ class DropItem(Base):
     kind: Mapped[str] = mapped_column(String(16))
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_ephemeral: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
+    is_secret: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
     expires_at: Mapped[datetime | None] = mapped_column(

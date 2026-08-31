@@ -32,6 +32,7 @@ export default function App() {
       >
         <Route path="/" element={<DropBoard isEphemeral={true} />} />
         <Route path="/timeline" element={<DropBoard isEphemeral={false} />} />
+        <Route path="/secret" element={<DropBoard isEphemeral={false} isSecret={true} />} />
         <Route path="/manage/*" element={<Manage />} />
         <Route path="/devices" element={<Navigate to="/manage/devices" replace />} />
       </Route>

@@ -35,6 +35,7 @@ def _item_out(item: DropItem) -> ItemOut:
         kind=item.kind,
         note=item.note,
         is_ephemeral=item.is_ephemeral,
+        is_secret=item.is_secret,
         expires_at=item.expires_at,
         deleted_at=item.deleted_at,
         created_at=item.created_at,
@@ -88,13 +89,14 @@ async def list_items(
     limit: int = Query(default=_PAGE_SIZE, ge=1, le=100),
     kind: str | None = Query(default=None, pattern="^(file|note)$"),
     is_ephemeral: bool | None = Query(default=None),
+    is_secret: bool = Query(default=False),
     session: AsyncSession = Depends(get_session),
     _: tuple = Depends(require_auth),
 ) -> ItemList:
     stmt_base = (
         select(DropItem)
         .options(selectinload(DropItem.files))
-        .where(DropItem.deleted_at.is_(None))
+        .where(DropItem.deleted_at.is_(None), DropItem.is_secret == is_secret)
         .order_by(DropItem.created_at.desc(), DropItem.id.desc())
     )
     if kind:
@@ -153,6 +155,7 @@ async def create_item(
             note=body.note,
             created_by_device=device_id,
             is_ephemeral=body.is_ephemeral,
+            is_secret=body.is_secret,
             expires_at=expires_at,
         )
         session.add(item)
@@ -175,6 +178,7 @@ async def create_item(
         note=body.note,
         created_by_device=device_id,
         is_ephemeral=body.is_ephemeral,
+        is_secret=body.is_secret,
         expires_at=expires_at,
     )
     session.add(item)

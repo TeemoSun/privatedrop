@@ -44,6 +44,7 @@ class ItemCreate(BaseModel):
     kind: str = Field(pattern="^(file|note)$")
     note: str | None = Field(default=None, max_length=100_000)
     is_ephemeral: bool = False
+    is_secret: bool = False
     files: list[FileSpec] = Field(default_factory=list)
 
 
@@ -74,6 +75,7 @@ class ItemOut(BaseModel):
     kind: str
     note: str | None
     is_ephemeral: bool = False
+    is_secret: bool = False
     expires_at: datetime | None = None
     deleted_at: datetime | None = None
     created_at: datetime
