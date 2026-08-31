@@ -203,4 +203,14 @@ export const api = {
 
   deleteItem: (itemId: string) =>
     request<void>(`/api/items/${itemId}`, { method: "DELETE" }),
+
+  trashItems: () => request<Item[]>("/api/items/trash"),
+
+  restoreItem: (itemId: string) =>
+    request<Item>(`/api/items/${itemId}/restore`, { method: "POST" }),
+
+  purgeItem: (itemId: string) =>
+    request<void>(`/api/items/${itemId}/purge`, { method: "DELETE" }),
+
+  emptyTrash: () => request<void>("/api/items/trash/empty", { method: "DELETE" }),
 };

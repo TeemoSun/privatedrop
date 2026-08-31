@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutDashboard, LogOut, Smartphone, Zap } from "lucide-react";
+import { LayoutDashboard, LogOut, Settings, Zap } from "lucide-react";
 
 import { Button } from "./ui/Button";
 import { api, clearTokens, getDeviceName } from "../lib/api";
@@ -17,16 +17,16 @@ function SidebarNav() {
   return (
     <nav className="flex flex-col gap-1">
       <NavLink to="/" end className={navClass}>
-        <Zap className="h-4 w-4 text-amber-500" />
+        <Zap className="h-4 w-4" />
         临时中转
       </NavLink>
       <NavLink to="/timeline" className={navClass}>
         <LayoutDashboard className="h-4 w-4" />
         时间线
       </NavLink>
-      <NavLink to="/devices" className={navClass}>
-        <Smartphone className="h-4 w-4" />
-        设备
+      <NavLink to="/manage" className={navClass}>
+        <Settings className="h-4 w-4" />
+        管理
       </NavLink>
     </nav>
   );
@@ -102,7 +102,7 @@ export function AppShell() {
             时间线
           </NavLink>
           <NavLink
-            to="/devices"
+            to="/manage"
             className={({ isActive }) =>
               cn(
                 "flex flex-1 flex-col items-center gap-1 py-1 text-xs font-medium transition-colors",
@@ -110,8 +110,8 @@ export function AppShell() {
               )
             }
           >
-            <Smartphone className="h-5 w-5" />
-            设备
+            <Settings className="h-5 w-5" />
+            管理
           </NavLink>
         </nav>
       </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clock, File as FileIcon, FileUp, Inbox, Plus, X } from "lucide-react";
+import { File as FileIcon, FileUp, Inbox, Plus, X } from "lucide-react";
 
 import { api, getAccessToken } from "../lib/api";
 import { ItemCard } from "../components/ItemCard";
@@ -297,14 +297,6 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
               <p className="text-xs sm:text-sm text-muted-foreground">文件将添加到输入框顶部，点击发送即可上传</p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* 临时中转提示横幅 */}
-      {isEphemeral && (
-        <div className="mt-2 shrink-0 flex items-center gap-1.5 rounded-md bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400">
-          <Clock className="h-3.5 w-3.5 shrink-0" />
-          <span>临时中转：所有内容与文件仅保留 24 小时，到期自动物理销毁</span>
         </div>
       )}
 

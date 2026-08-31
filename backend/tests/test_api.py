@@ -219,13 +219,13 @@ async def test_file_item_upload_download_and_deduplication(client: AsyncClient) 
     assert items_list_resp.status_code == 200
     assert len(items_list_resp.json()["items"]) == 2
 
-    # 6. Delete item 1: physical file must NOT be deleted because item 2 still references it
-    del1_resp = await client.delete(f"/api/items/{item_1_id}", headers=headers)
+    # 6. Purge item 1: physical file must NOT be deleted because item 2 still references it
+    del1_resp = await client.delete(f"/api/items/{item_1_id}/purge", headers=headers)
     assert del1_resp.status_code == 204
     assert storage_module.file_exists(content_sha) is True
 
-    # 7. Delete item 2: physical file should now be unreferenced and removed
-    del2_resp = await client.delete(f"/api/items/{item_2_id}", headers=headers)
+    # 7. Purge item 2: physical file should now be unreferenced and removed
+    del2_resp = await client.delete(f"/api/items/{item_2_id}/purge", headers=headers)
     assert del2_resp.status_code == 204
     assert storage_module.file_exists(content_sha) is False
 
@@ -513,4 +513,115 @@ async def test_cleanup_removes_expired_ephemeral_items(client, monkeypatch) -> N
         assert expired_ephemeral.id not in ids
         assert active_ephemeral.id in ids
         assert permanent_note.id in ids
+
+
+async def test_trash_flow_soft_delete_restore_purge(client) -> None:
+    tokens = await login(client)
+    headers = auth_headers(tokens)
+
+    # 1. Create a note
+    resp = await client.post(
+        "/api/items",
+        json={"kind": "note", "note": "recycle bin test note"},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    item_id = resp.json()["item_id"]
+
+    # 2. Soft delete item
+    resp = await client.delete(f"/api/items/{item_id}", headers=headers)
+    assert resp.status_code == 204
+
+    # 3. Item is hidden from active items
+    resp = await client.get("/api/items", headers=headers)
+    assert resp.status_code == 200
+    assert not any(i["id"] == item_id for i in resp.json()["items"])
+
+    # 4. Item appears in trash
+    resp = await client.get("/api/items/trash", headers=headers)
+    assert resp.status_code == 200
+    trash_items = resp.json()
+    assert any(i["id"] == item_id for i in trash_items)
+    trash_item = next(i for i in trash_items if i["id"] == item_id)
+    assert trash_item["deleted_at"] is not None
+
+    # 5. Restore item
+    resp = await client.post(f"/api/items/{item_id}/restore", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["deleted_at"] is None
+
+    # 6. Item is back in active items and gone from trash
+    resp = await client.get("/api/items", headers=headers)
+    assert any(i["id"] == item_id for i in resp.json()["items"])
+
+    resp = await client.get("/api/items/trash", headers=headers)
+    assert not any(i["id"] == item_id for i in resp.json())
+
+    # 7. Soft delete and purge item
+    await client.delete(f"/api/items/{item_id}", headers=headers)
+    resp = await client.delete(f"/api/items/{item_id}/purge", headers=headers)
+    assert resp.status_code == 204
+
+    # 8. Gone from everywhere
+    resp = await client.get("/api/items/trash", headers=headers)
+    assert not any(i["id"] == item_id for i in resp.json())
+
+
+async def test_empty_trash(client) -> None:
+    tokens = await login(client)
+    headers = auth_headers(tokens)
+
+    # Create 2 notes
+    r1 = await client.post("/api/items", json={"kind": "note", "note": "n1"}, headers=headers)
+    r2 = await client.post("/api/items", json={"kind": "note", "note": "n2"}, headers=headers)
+    id1, id2 = r1.json()["item_id"], r2.json()["item_id"]
+
+    await client.delete(f"/api/items/{id1}", headers=headers)
+    await client.delete(f"/api/items/{id2}", headers=headers)
+
+    resp = await client.get("/api/items/trash", headers=headers)
+    assert len(resp.json()) >= 2
+
+    # Empty trash
+    resp = await client.delete("/api/items/trash/empty", headers=headers)
+    assert resp.status_code == 204
+
+    resp = await client.get("/api/items/trash", headers=headers)
+    assert len(resp.json()) == 0
+
+
+async def test_cleanup_removes_30_day_expired_trash_items(client, monkeypatch) -> None:
+    import app.cleanup as cleanup
+    import app.models as models
+
+    tokens = await login(client)
+    now = datetime.now(timezone.utc)
+
+    expired_trash = models.DropItem(
+        kind="note",
+        note="expired trash",
+        created_by_device=tokens["device_id"],
+        deleted_at=now - timedelta(days=31),
+    )
+    active_trash = models.DropItem(
+        kind="note",
+        note="active trash",
+        created_by_device=tokens["device_id"],
+        deleted_at=now - timedelta(days=5),
+    )
+
+    async with db_module.SessionLocal() as s:
+        s.add_all([expired_trash, active_trash])
+        await s.commit()
+
+    monkeypatch.setattr(cleanup, "SessionLocal", db_module.SessionLocal)
+
+    removed = await cleanup._cleanup_expired_trash_items()
+    assert removed == 1
+
+    async with db_module.SessionLocal() as s:
+        ids = [row[0] for row in (await s.execute(select(models.DropItem.id))).all()]
+        assert expired_trash.id not in ids
+        assert active_trash.id in ids
+
 

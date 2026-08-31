@@ -75,6 +75,7 @@ class ItemOut(BaseModel):
     note: str | None
     is_ephemeral: bool = False
     expires_at: datetime | None = None
+    deleted_at: datetime | None = None
     created_at: datetime
     created_by_device: uuid.UUID | None
     files: list[FileOut]

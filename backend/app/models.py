@@ -42,6 +42,7 @@ class DropItem(Base):
         Index("ix_drop_items_created_id", "created_at", "id"),
         Index("ix_drop_items_is_ephemeral_created", "is_ephemeral", "created_at", "id"),
         Index("ix_drop_items_expires_at", "expires_at"),
+        Index("ix_drop_items_deleted_at", "deleted_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -54,6 +55,9 @@ class DropItem(Base):
         Boolean, default=False, server_default=text("false")
     )
     expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(

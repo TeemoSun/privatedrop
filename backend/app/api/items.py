@@ -36,6 +36,7 @@ def _item_out(item: DropItem) -> ItemOut:
         note=item.note,
         is_ephemeral=item.is_ephemeral,
         expires_at=item.expires_at,
+        deleted_at=item.deleted_at,
         created_at=item.created_at,
         created_by_device=item.created_by_device,
         files=[FileOut.model_validate(f) for f in item.files],
@@ -93,6 +94,7 @@ async def list_items(
     stmt_base = (
         select(DropItem)
         .options(selectinload(DropItem.files))
+        .where(DropItem.deleted_at.is_(None))
         .order_by(DropItem.created_at.desc(), DropItem.id.desc())
     )
     if kind:
@@ -330,8 +332,61 @@ async def download_file(
     )
 
 
-@router.delete("/{item_id}", status_code=204)
-async def delete_item(
+@router.get("/trash", response_model=list[ItemOut])
+async def list_trash_items(
+    session: AsyncSession = Depends(get_session),
+    _: tuple = Depends(require_auth),
+) -> list[ItemOut]:
+    stmt = (
+        select(DropItem)
+        .options(selectinload(DropItem.files))
+        .where(DropItem.deleted_at.is_not(None))
+        .order_by(DropItem.deleted_at.desc(), DropItem.id.desc())
+    )
+    result = await session.execute(stmt)
+    rows = list(result.scalars().all())
+    return [_item_out(item) for item in rows]
+
+
+@router.delete("/trash/empty", status_code=204)
+async def empty_trash(
+    session: AsyncSession = Depends(get_session),
+    _: tuple = Depends(require_auth),
+) -> None:
+    result = await session.execute(
+        select(DropItem)
+        .options(selectinload(DropItem.files))
+        .where(DropItem.deleted_at.is_not(None))
+    )
+    items = list(result.scalars().all())
+    all_sha256 = set()
+    for item in items:
+        for f in item.files:
+            all_sha256.add(f.sha256)
+        await session.delete(item)
+    await session.commit()
+    for sha in all_sha256:
+        await storage.delete_file_if_unreferenced(sha, session)
+
+
+@router.post("/{item_id}/restore", response_model=ItemOut)
+async def restore_item(
+    item_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    _: tuple = Depends(require_auth),
+) -> ItemOut:
+    item = await _get_item_with_files(session, item_id)
+    if item.deleted_at is not None:
+        item.deleted_at = None
+        await session.commit()
+        item_out = await _fetch_item_out(session, item.id)
+        await manager.broadcast({"type": "item_created", "item": item_out.model_dump(mode="json")})
+        return item_out
+    return _item_out(item)
+
+
+@router.delete("/{item_id}/purge", status_code=204)
+async def purge_item(
     item_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
     _: tuple = Depends(require_auth),
@@ -340,8 +395,18 @@ async def delete_item(
     sha256_list = list({f.sha256 for f in item.files})
     await session.delete(item)
     await session.commit()
-
     for sha in sha256_list:
         await storage.delete_file_if_unreferenced(sha, session)
 
+
+@router.delete("/{item_id}", status_code=204)
+async def delete_item(
+    item_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    _: tuple = Depends(require_auth),
+) -> None:
+    item = await _get_item_with_files(session, item_id)
+    item.deleted_at = utc_now()
+    await session.commit()
     await manager.broadcast({"type": "item_deleted", "id": str(item_id)})
+

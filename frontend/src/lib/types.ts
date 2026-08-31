@@ -13,6 +13,7 @@ export interface Item {
   note: string | null;
   is_ephemeral?: boolean;
   expires_at?: string | null;
+  deleted_at?: string | null;
   created_at: string;
   created_by_device: string | null;
   files: FileOut[];

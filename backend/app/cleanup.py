@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 DRAFT_STALE_AFTER = timedelta(seconds=settings.upload_url_ttl_seconds * 4)
 
 
+TRASH_RETENTION = timedelta(days=30)
+
+
 def _is_ready(item: DropItem) -> bool:
     if item.kind == "note":
         return True
@@ -28,7 +31,7 @@ async def _cleanup_stale_drafts() -> int:
     async with SessionLocal() as session:
         result = await session.execute(
             select(DropItem.id)
-            .where(DropItem.kind == "file", DropItem.created_at < cutoff)
+            .where(DropItem.kind == "file", DropItem.created_at < cutoff, DropItem.deleted_at.is_(None))
             .order_by(DropItem.created_at.asc(), DropItem.id.asc())
             .limit(50)
         )
@@ -54,7 +57,11 @@ async def _cleanup_expired_ephemeral_items() -> int:
     async with SessionLocal() as session:
         result = await session.execute(
             select(DropItem.id)
-            .where(DropItem.is_ephemeral == True, DropItem.expires_at <= now)  # noqa: E712
+            .where(
+                DropItem.is_ephemeral == True,  # noqa: E712
+                DropItem.expires_at <= now,
+                DropItem.deleted_at.is_(None),
+            )
             .order_by(DropItem.expires_at.asc(), DropItem.id.asc())
             .limit(100)
         )
@@ -75,6 +82,32 @@ async def _cleanup_expired_ephemeral_items() -> int:
     return removed
 
 
+async def _cleanup_expired_trash_items() -> int:
+    cutoff = datetime.now(timezone.utc) - TRASH_RETENTION
+    removed = 0
+    async with SessionLocal() as session:
+        result = await session.execute(
+            select(DropItem.id)
+            .where(DropItem.deleted_at.is_not(None), DropItem.deleted_at <= cutoff)
+            .order_by(DropItem.deleted_at.asc(), DropItem.id.asc())
+            .limit(100)
+        )
+        item_ids = [row[0] for row in result.all()]
+        if not item_ids:
+            return 0
+        for item_id in item_ids:
+            item = await session.get(DropItem, item_id, options=[selectinload(DropItem.files)])
+            if item is None:
+                continue
+            sha256_list = list({f.sha256 for f in item.files})
+            await session.delete(item)
+            await session.commit()
+            for sha in sha256_list:
+                await storage.delete_file_if_unreferenced(sha, session)
+            removed += 1
+    return removed
+
+
 async def cleanup_job() -> None:
     try:
         removed_drafts = await _cleanup_stale_drafts()
@@ -83,6 +116,9 @@ async def cleanup_job() -> None:
         removed_ephemeral = await _cleanup_expired_ephemeral_items()
         if removed_ephemeral:
             logger.info("cleanup: removed %d expired ephemeral items", removed_ephemeral)
+        removed_trash = await _cleanup_expired_trash_items()
+        if removed_trash:
+            logger.info("cleanup: removed %d expired trash items", removed_trash)
         removed_temp = storage.cleanup_temp_files(max_age_seconds=int(DRAFT_STALE_AFTER.total_seconds()))
         if removed_temp:
             logger.info("cleanup: removed %d stale temp files", removed_temp)

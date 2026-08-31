@@ -3,9 +3,9 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "./components/AppShell";
 import { getAccessToken } from "./lib/api";
-import { Devices } from "./pages/Devices";
 import { DropBoard } from "./pages/DropBoard";
 import { Login } from "./pages/Login";
+import { Manage } from "./pages/Manage";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(() => !!getAccessToken());
@@ -32,7 +32,8 @@ export default function App() {
       >
         <Route path="/" element={<DropBoard isEphemeral={true} />} />
         <Route path="/timeline" element={<DropBoard isEphemeral={false} />} />
-        <Route path="/devices" element={<Devices />} />
+        <Route path="/manage/*" element={<Manage />} />
+        <Route path="/devices" element={<Navigate to="/manage/devices" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
