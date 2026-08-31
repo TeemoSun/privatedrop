@@ -121,12 +121,12 @@ cd frontend && npm run build
 
 ## 发布
 
-```bash
-# 构建并推送 Docker Hub（默认账号 pigzho，可 DOCKER_USER=xxx 覆盖）
-DOCKER_USER=pigzho bash scripts/docker-push.sh
+本项目镜像托管于 GitHub Container Registry（`ghcr.io/teemosun/privatedrop`），支持 GitHub Actions 自动构建发布：
 
-# GitHub 发布流程见 docs/GitHub推送流程.md
-```
+- **自动化发布**：向 `main` 分支推送代码或打 Release tag 会自动触发 GitHub Actions 构建并发布镜像。
+- **本地发布**：执行 `bash scripts/docker-push.sh` 脚本构建并推送到 GHCR。
+
+详细发布流程见 [docs/Docker镜像打包上传.md](docs/Docker镜像打包上传.md) 与 [docs/GitHub推送流程.md](docs/GitHub推送流程.md)。
 
 ## 环境变量
 

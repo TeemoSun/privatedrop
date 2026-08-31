@@ -1,6 +1,6 @@
 services:
   app:
-    image: pigzho/privatedrop:latest
+    image: ghcr.io/teemosun/privatedrop:latest
     container_name: privatedrop-app
     restart: unless-stopped
     ports:

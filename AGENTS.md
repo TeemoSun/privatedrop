@@ -58,11 +58,11 @@ uv run alembic revision --autogenerate -m "desc"
 uv run alembic upgrade head
 
 # Docker（uv.lock 与 package-lock.json 必须与依赖同步，镜像内用 --frozen / npm ci）
-docker build -t pigzho/privatedrop:latest .
+docker build -t ghcr.io/teemosun/privatedrop:latest .
 
 # 发布
 git add <files> && git commit -m "feat: 描述" && git push
-DOCKER_USER=pigzho bash scripts/docker-push.sh   # 打包并推送 Docker Hub，流程见 docs/Docker镜像打包上传.md
+bash scripts/docker-push.sh   # 打包并推送 GHCR，流程见 docs/Docker镜像打包上传.md
 ```
 
 ## 关键约定
