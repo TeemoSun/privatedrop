@@ -15,13 +15,13 @@ os.environ.setdefault("APP_PASSWORD", "test-password-123")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-456")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 os.environ.setdefault("MAX_FILE_SIZE", "10485760")
-os.environ.setdefault("MINIO_ENDPOINT", "localhost:9000")
-os.environ.setdefault("MINIO_ROOT_USER", "minioadmin")
-os.environ.setdefault("MINIO_ROOT_PASSWORD", "minioadmin")
+os.environ.setdefault("STORAGE_PATH", "./data/test_storage")
 
 import app.db as db_module  # noqa: E402
 import app.models as models  # noqa: E402
 import app.security as security  # noqa: E402
+import app.storage as storage_module  # noqa: E402
+from app.config import settings  # noqa: E402
 from app.storage import checksum_sha256  # noqa: E402
 
 
@@ -31,7 +31,11 @@ def _password_hash() -> None:
 
 
 @pytest_asyncio.fixture
-async def session() -> None:
+async def session(tmp_path, monkeypatch) -> None:
+    test_storage = tmp_path / "storage"
+    monkeypatch.setattr(settings, "storage_path", str(test_storage))
+    storage_module.ensure_storage_dirs()
+
     engine = create_async_engine(
         "sqlite+aiosqlite://",
         connect_args={"check_same_thread": False},
@@ -47,24 +51,8 @@ async def session() -> None:
 
 
 @pytest_asyncio.fixture
-async def client(session, monkeypatch) -> AsyncClient:
-    from datetime import datetime, timezone
-
+async def client(session) -> AsyncClient:
     from app.main import app
-
-    monkeypatch.setattr(
-        "app.api.items.sign_upload_url",
-        lambda key, disposition, checksum, content_type: (
-            f"http://minio.test/upload/{key}",
-            datetime.now(timezone.utc),
-        ),
-    )
-    monkeypatch.setattr("app.api.items.head_object", lambda key: None)
-    monkeypatch.setattr(
-        "app.api.items.sign_download_url",
-        lambda key: (f"http://minio.test/download/{key}", datetime.now(timezone.utc)),
-    )
-    monkeypatch.setattr("app.api.items.delete_object", lambda key: None)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -141,6 +129,105 @@ async def test_notes_flow(client: AsyncClient) -> None:
 
     resp = await client.get("/api/items?limit=10", headers=headers)
     assert resp.json()["items"] == []
+
+
+async def test_file_item_upload_download_and_deduplication(client: AsyncClient) -> None:
+    tokens = await login(client)
+    headers = auth_headers(tokens)
+
+    content = b"hello privatedrop content addressable storage test"
+    content_sha = checksum_sha256(content)
+
+    # 1. Create file item
+    resp = await client.post(
+        "/api/items",
+        json={
+            "kind": "file",
+            "note": "test file 1",
+            "files": [
+                {
+                    "file_name": "test.txt",
+                    "mime_type": "text/plain",
+                    "size": len(content),
+                    "sha256": content_sha,
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    res_data = resp.json()
+    item_1_id = res_data["item_id"]
+    file_1_target = res_data["files"][0]
+    assert file_1_target["already_exists"] is False
+    assert file_1_target["upload_url"] == f"/api/items/{item_1_id}/files/{file_1_target['file_id']}/upload"
+
+    # 2. Upload file stream
+    upload_resp = await client.put(
+        file_1_target["upload_url"],
+        content=content,
+        headers=headers,
+    )
+    assert upload_resp.status_code == 200
+
+    # 3. Mark complete
+    complete_resp = await client.post(f"/api/items/{item_1_id}/upload-complete", headers=headers)
+    assert complete_resp.status_code == 200
+    item_out = complete_resp.json()
+    assert item_out["kind"] == "file"
+    assert len(item_out["files"]) == 1
+
+    # 4. Download file via Ticket
+    download_url_resp = await client.get(
+        f"/api/items/{item_1_id}/files/{file_1_target['file_id']}/download-url",
+        headers=headers,
+    )
+    assert download_url_resp.status_code == 200
+    download_rel_url = download_url_resp.json()["url"]
+
+    # Download without Bearer header (using ticket query param)
+    download_resp = await client.get(download_rel_url)
+    assert download_resp.status_code == 200
+    assert download_resp.content == content
+    assert "attachment; filename=\"test.txt\"" in download_resp.headers.get("content-disposition", "") or "test.txt" in download_resp.headers.get("content-disposition", "")
+
+    # 5. Deduplication / 秒传 test: create a second item with the exact same sha256
+    resp2 = await client.post(
+        "/api/items",
+        json={
+            "kind": "file",
+            "note": "test file 2 (deduped)",
+            "files": [
+                {
+                    "file_name": "copy_test.txt",
+                    "mime_type": "text/plain",
+                    "size": len(content),
+                    "sha256": content_sha,
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert resp2.status_code == 201
+    res_data2 = resp2.json()
+    item_2_id = res_data2["item_id"]
+    file_2_target = res_data2["files"][0]
+    assert file_2_target["already_exists"] is True  # 秒传命中！
+
+    # Item 2 is immediately ready without needing upload
+    items_list_resp = await client.get("/api/items?limit=10", headers=headers)
+    assert items_list_resp.status_code == 200
+    assert len(items_list_resp.json()["items"]) == 2
+
+    # 6. Delete item 1: physical file must NOT be deleted because item 2 still references it
+    del1_resp = await client.delete(f"/api/items/{item_1_id}", headers=headers)
+    assert del1_resp.status_code == 204
+    assert storage_module.file_exists(content_sha) is True
+
+    # 7. Delete item 2: physical file should now be unreferenced and removed
+    del2_resp = await client.delete(f"/api/items/{item_2_id}", headers=headers)
+    assert del2_resp.status_code == 204
+    assert storage_module.file_exists(content_sha) is False
 
 
 async def test_file_item_draft_hidden_until_complete(client: AsyncClient) -> None:
@@ -252,7 +339,7 @@ async def test_pagination_no_lost_items(client: AsyncClient) -> None:
                         "file_name": f"draft-{i}.txt",
                         "mime_type": "text/plain",
                         "size": 1,
-                        "sha256": checksum_sha256(b"x"),
+                        "sha256": checksum_sha256(f"x{i}".encode()),
                     }
                 ],
             },
@@ -317,8 +404,8 @@ async def test_cleanup_preserves_notes_and_ready_files(client, monkeypatch) -> N
     async with db_module.SessionLocal() as s:
         s.add_all([old_note, old_draft, old_ready])
         await s.flush()
-        s.add(models.DropFile(item_id=old_draft.id, object_key=str(uuid.uuid4()), file_name="d.txt", mime_type="text/plain", size=1, sha256="0" * 64))
-        s.add(models.DropFile(item_id=old_ready.id, object_key=str(uuid.uuid4()), file_name="r.txt", mime_type="text/plain", size=1, sha256="0" * 64, uploaded_at=datetime.now(timezone.utc)))
+        s.add(models.DropFile(item_id=old_draft.id, file_name="d.txt", mime_type="text/plain", size=1, sha256="0" * 64))
+        s.add(models.DropFile(item_id=old_ready.id, file_name="r.txt", mime_type="text/plain", size=1, sha256="0" * 64, uploaded_at=datetime.now(timezone.utc)))
         await s.commit()
 
     old_ts = datetime.now(timezone.utc) - timedelta(hours=2)
@@ -331,16 +418,10 @@ async def test_cleanup_preserves_notes_and_ready_files(client, monkeypatch) -> N
         old_ready.created_at = old_ts
         await s.commit()
 
-    deleted_keys: list[str] = []
     monkeypatch.setattr(cleanup, "SessionLocal", db_module.SessionLocal)
-    monkeypatch.setattr(
-        "app.cleanup.storage.delete_object",
-        lambda key: deleted_keys.append(key),
-    )
 
     removed = await cleanup._cleanup_stale_drafts()
     assert removed == 1  # 只删除过期 file 草稿
-    assert len(deleted_keys) == 1
 
     async with db_module.SessionLocal() as s:
         ids = [row[0] for row in (await s.execute(select(models.DropItem.id))).all()]

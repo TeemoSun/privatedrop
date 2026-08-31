@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { FileUp, X } from "lucide-react";
 
-import { api } from "../lib/api";
+import { api, getAccessToken } from "../lib/api";
 import { cn, formatBytes, sha256Hex } from "../lib/utils";
 import { Button } from "./ui/Button";
 import { Spinner } from "./ui/Misc";
@@ -20,16 +20,18 @@ interface DropZoneProps {
 }
 
 function putWithProgress(
-  target: { upload_url: string; checksum_sha256: string; content_disposition: string },
+  uploadUrl: string,
   file: File,
   onProgress: (pct: number) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", target.upload_url);
+    xhr.open("PUT", uploadUrl);
+    const token = getAccessToken();
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-amz-checksum-sha256", target.checksum_sha256);
-    xhr.setRequestHeader("Content-Disposition", target.content_disposition);
     xhr.onerror = () => reject(new Error("网络错误"));
     xhr.onabort = () => reject(new Error("已取消"));
     xhr.upload.onprogress = (e) => {
@@ -81,8 +83,12 @@ export function DropZone({ onCreated }: DropZoneProps) {
       const created = await api.createFileItem(specs, note.trim() || null);
       let allOk = true;
       const uploads = created.files.map(async (target, i) => {
+        if (target.already_exists) {
+          setFiles((prev) => prev.map((p, idx) => (idx === i ? { ...p, status: "done", progress: 100 } : p)));
+          return;
+        }
         try {
-          await putWithProgress(target, files[i].file, (pct) => {
+          await putWithProgress(target.upload_url, files[i].file, (pct) => {
             setFiles((prev) => prev.map((p, idx) => (idx === i ? { ...p, progress: pct } : p)));
           });
           setFiles((prev) => prev.map((p, idx) => (idx === i ? { ...p, status: "done", progress: 100 } : p)));
@@ -133,7 +139,7 @@ export function DropZone({ onCreated }: DropZoneProps) {
       >
         <FileUp className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium">拖拽文件到这里，或点击选择</p>
-        <p className="text-xs text-muted-foreground">上传将直连存储，支持大文件</p>
+        <p className="text-xs text-muted-foreground">支持大文件、本地哈希去重秒传</p>
         <input
           ref={inputRef}
           type="file"
@@ -175,7 +181,7 @@ export function DropZone({ onCreated }: DropZoneProps) {
           ))}
           {submitting && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Spinner /> 正在上传…
+              <Spinner /> 正在处理…
             </div>
           )}
           {error && <p className="text-xs text-destructive">{error}</p>}

@@ -49,13 +49,15 @@ class DropItem(Base):
 
 class DropFile(Base):
     __tablename__ = "drop_files"
-    __table_args__ = (Index("ix_drop_files_item_id", "item_id"),)
+    __table_args__ = (
+        Index("ix_drop_files_item_id", "item_id"),
+        Index("ix_drop_files_sha256", "sha256"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     item_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("drop_items.id", ondelete="CASCADE"), nullable=False
     )
-    object_key: Mapped[str] = mapped_column(String(255), unique=True)
     file_name: Mapped[str] = mapped_column(String(1024))
     mime_type: Mapped[str] = mapped_column(String(255))
     size: Mapped[int] = mapped_column(BigInteger)

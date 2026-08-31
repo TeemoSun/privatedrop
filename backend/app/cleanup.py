@@ -9,7 +9,6 @@ from app import storage
 from app.config import settings
 from app.db import SessionLocal
 from app.models import DropItem
-from app.ws import manager
 
 logger = logging.getLogger(__name__)
 
@@ -39,18 +38,22 @@ async def _cleanup_stale_drafts() -> int:
             item = await session.get(DropItem, item_id, options=[selectinload(DropItem.files)])
             if item is None or _is_ready(item):
                 continue
-            for f in item.files:
-                storage.delete_object(f.object_key)
+            sha256_list = list({f.sha256 for f in item.files})
             await session.delete(item)
             await session.commit()
+            for sha in sha256_list:
+                await storage.delete_file_if_unreferenced(sha, session)
             removed += 1
     return removed
 
 
 async def cleanup_job() -> None:
     try:
-        removed = await _cleanup_stale_drafts()
-        if removed:
-            logger.info("cleanup: removed %d stale draft items", removed)
+        removed_drafts = await _cleanup_stale_drafts()
+        if removed_drafts:
+            logger.info("cleanup: removed %d stale draft items", removed_drafts)
+        removed_temp = storage.cleanup_temp_files(max_age_seconds=int(DRAFT_STALE_AFTER.total_seconds()))
+        if removed_temp:
+            logger.info("cleanup: removed %d stale temp files", removed_temp)
     except Exception:
         logger.exception("cleanup job failed")

@@ -1,7 +1,5 @@
 import uuid
 
-import uuid
-
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -29,3 +27,16 @@ async def require_auth(
         return device_id, jti
     except (jwt.InvalidTokenError, ValueError, KeyError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
+
+
+async def get_auth_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> tuple[uuid.UUID, str] | None:
+    if credentials is None:
+        return None
+    try:
+        device_id = decode_access_token(credentials.credentials)
+        jti = decode_access_token_jti(credentials.credentials)
+        return device_id, jti
+    except (jwt.InvalidTokenError, ValueError, KeyError):
+        return None

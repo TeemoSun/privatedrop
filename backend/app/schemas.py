@@ -49,9 +49,7 @@ class ItemCreate(BaseModel):
 class FileUploadTarget(BaseModel):
     file_id: uuid.UUID
     upload_url: str
-    content_disposition: str
-    checksum_sha256: str
-    expires_at: datetime
+    already_exists: bool = False
 
 
 class ItemCreateResponse(BaseModel):

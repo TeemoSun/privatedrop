@@ -37,9 +37,7 @@ export interface TokenResponse {
 export interface UploadTarget {
   file_id: string;
   upload_url: string;
-  content_disposition: string;
-  checksum_sha256: string;
-  expires_at: string;
+  already_exists?: boolean;
 }
 
 export interface ItemCreateResponse {

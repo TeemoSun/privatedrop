@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -16,7 +15,7 @@ from app.cleanup import cleanup_job
 from app.config import settings
 from app.security import hash_password
 from app import security as security_module
-from app.storage import ensure_bucket
+from app.storage import ensure_storage_dirs
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +35,6 @@ def validate_secrets() -> None:
         problems.append("APP_PASSWORD must be set to a non-placeholder value")
     if not settings.jwt_secret or settings.jwt_secret.strip() in _PLACEHOLDERS:
         problems.append("JWT_SECRET must be set to a non-placeholder value")
-    if settings.minio_root_user == "minioadmin" and settings.minio_root_password == "minioadmin":
-        problems.append("MINIO_ROOT_USER/MINIO_ROOT_PASSWORD must not be default credentials")
     if problems:
         raise RuntimeError("invalid startup configuration:\n  - " + "\n  - ".join(problems))
 
@@ -52,7 +49,7 @@ async def run_migrations() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     validate_secrets()
-    ensure_bucket()
+    ensure_storage_dirs()
     await run_migrations()
     security_module.APP_PASSWORD_HASH = hash_password(settings.app_password)
     scheduler.add_job(cleanup_job, "interval", minutes=10)

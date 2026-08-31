@@ -1,14 +1,15 @@
 import base64
 import uuid
 from datetime import datetime, timezone
-from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_session, require_auth
+from app import storage
+from app.api.deps import get_auth_optional, get_session, require_auth
 from app.config import settings
 from app.models import DropFile, DropItem
 from app.schemas import (
@@ -21,14 +22,6 @@ from app.schemas import (
     ItemOut,
 )
 from app.security import utc_now
-from app.storage import (
-    checksum_sha256_b64,
-    delete_object,
-    generate_object_key,
-    head_object,
-    sign_download_url,
-    sign_upload_url,
-)
 from app.ws import manager
 
 router = APIRouter(prefix="/api/items", tags=["items"])
@@ -73,7 +66,7 @@ def _decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
         raise HTTPException(status_code=400, detail="invalid cursor") from exc
 
 
-async def _get_ready_item(session: AsyncSession, item_id: uuid.UUID) -> DropItem:
+async def _get_item_with_files(session: AsyncSession, item_id: uuid.UUID) -> DropItem:
     item = await session.get(DropItem, item_id, options=[selectinload(DropItem.files)])
     if item is None:
         raise HTTPException(status_code=404, detail="item not found")
@@ -166,31 +159,80 @@ async def create_item(
     await session.flush()
 
     targets: list[FileUploadTarget] = []
+    all_files_exist = True
     for spec in body.files:
-        key = generate_object_key()
-        disposition = "attachment; filename*=UTF-8''" + quote(spec.file_name)
-        url, expires = sign_upload_url(key, disposition, spec.sha256, spec.mime_type)
+        exists = storage.file_exists(spec.sha256)
+        uploaded_at = utc_now() if exists else None
+        if not exists:
+            all_files_exist = False
+
         drop_file = DropFile(
             item_id=item.id,
-            object_key=key,
             file_name=spec.file_name,
             mime_type=spec.mime_type,
             size=spec.size,
-            sha256=spec.sha256,
+            sha256=spec.sha256.lower(),
+            uploaded_at=uploaded_at,
         )
         session.add(drop_file)
         await session.flush()
+
+        upload_url = (
+            ""
+            if exists
+            else f"/api/items/{item.id}/files/{drop_file.id}/upload"
+        )
         targets.append(
             FileUploadTarget(
                 file_id=drop_file.id,
-                upload_url=url,
-                content_disposition=disposition,
-                checksum_sha256=checksum_sha256_b64(spec.sha256),
-                expires_at=expires,
+                upload_url=upload_url,
+                already_exists=exists,
             )
         )
+
     await session.commit()
+
+    if all_files_exist:
+        item_out = await _fetch_item_out(session, item.id)
+        await manager.broadcast({"type": "item_created", "item": item_out.model_dump(mode="json")})
+
     return ItemCreateResponse(item_id=item.id, files=targets)
+
+
+@router.put("/{item_id}/files/{file_id}/upload")
+async def upload_file(
+    item_id: uuid.UUID,
+    file_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    _: tuple = Depends(require_auth),
+) -> dict[str, bool]:
+    item = await _get_item_with_files(session, item_id)
+    if item.kind != "file":
+        raise HTTPException(status_code=400, detail="not a file item")
+
+    drop_file = next((f for f in item.files if f.id == file_id), None)
+    if drop_file is None:
+        raise HTTPException(status_code=404, detail="file not found")
+
+    if drop_file.uploaded_at is not None and storage.file_exists(drop_file.sha256):
+        return {"ok": True}
+
+    try:
+        await storage.save_upload_stream(
+            file_id=drop_file.id,
+            expected_sha256=drop_file.sha256,
+            expected_size=drop_file.size,
+            stream=request.stream(),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="failed to save upload") from exc
+
+    drop_file.uploaded_at = utc_now()
+    await session.commit()
+    return {"ok": True}
 
 
 @router.post("/{item_id}/upload-complete", response_model=ItemOut)
@@ -199,28 +241,17 @@ async def upload_complete(
     session: AsyncSession = Depends(get_session),
     _: tuple = Depends(require_auth),
 ) -> ItemOut:
-    item = await _get_ready_item(session, item_id)
+    item = await _get_item_with_files(session, item_id)
     if item.kind != "file":
         raise HTTPException(status_code=400, detail="not a file item")
 
     for f in item.files:
-        if f.uploaded_at is not None:
-            continue
-        head = head_object(f.object_key)
-        if head is None:
-            raise HTTPException(status_code=409, detail="object not uploaded yet")
-        if head.get("ContentLength") != f.size:
-            raise HTTPException(status_code=409, detail="size mismatch")
-        checksum = (head.get("ChecksumSHA256") or "").lower()
-        if checksum and checksum != f.sha256.lower():
-            raise HTTPException(status_code=409, detail="sha256 mismatch")
-        f.uploaded_at = utc_now()
+        if f.uploaded_at is None or not storage.file_exists(f.sha256):
+            raise HTTPException(status_code=409, detail="not all files uploaded")
 
     if not _is_ready(item):
-        await session.commit()
-        raise HTTPException(status_code=409, detail="not all files uploaded")
+        raise HTTPException(status_code=409, detail="item not ready")
 
-    await session.commit()
     item_out = await _fetch_item_out(session, item.id)
     await manager.broadcast(
         {"type": "item_created", "item": item_out.model_dump(mode="json")}
@@ -235,14 +266,48 @@ async def download_url(
     session: AsyncSession = Depends(get_session),
     _: tuple = Depends(require_auth),
 ) -> DownloadUrlResponse:
-    item = await _get_ready_item(session, item_id)
+    item = await _get_item_with_files(session, item_id)
     if not _is_ready(item):
         raise HTTPException(status_code=409, detail="item not ready")
     drop_file = next((f for f in item.files if f.id == file_id), None)
     if drop_file is None:
         raise HTTPException(status_code=404, detail="file not found")
-    url, expires = sign_download_url(drop_file.object_key)
+
+    ticket, expires = storage.create_download_ticket(item_id, file_id)
+    url = f"/api/items/{item_id}/files/{file_id}/download?ticket={ticket}"
     return DownloadUrlResponse(url=url, expires_at=expires)
+
+
+@router.get("/{item_id}/files/{file_id}/download")
+async def download_file(
+    item_id: uuid.UUID,
+    file_id: uuid.UUID,
+    ticket: str | None = Query(default=None),
+    auth: tuple | None = Depends(get_auth_optional),
+    session: AsyncSession = Depends(get_session),
+) -> FileResponse:
+    if ticket is not None:
+        if not storage.verify_download_ticket(ticket, item_id, file_id):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid or expired ticket")
+    elif auth is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="authentication required")
+
+    item = await _get_item_with_files(session, item_id)
+    if not _is_ready(item):
+        raise HTTPException(status_code=409, detail="item not ready")
+    drop_file = next((f for f in item.files if f.id == file_id), None)
+    if drop_file is None:
+        raise HTTPException(status_code=404, detail="file not found")
+
+    file_path = storage.get_file_path(drop_file.sha256)
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="file data not found on disk")
+
+    return FileResponse(
+        path=file_path,
+        filename=drop_file.file_name,
+        media_type=drop_file.mime_type or "application/octet-stream",
+    )
 
 
 @router.delete("/{item_id}", status_code=204)
@@ -251,9 +316,12 @@ async def delete_item(
     session: AsyncSession = Depends(get_session),
     _: tuple = Depends(require_auth),
 ) -> None:
-    item = await _get_ready_item(session, item_id)
-    for f in item.files:
-        delete_object(f.object_key)
+    item = await _get_item_with_files(session, item_id)
+    sha256_list = list({f.sha256 for f in item.files})
     await session.delete(item)
     await session.commit()
+
+    for sha in sha256_list:
+        await storage.delete_file_if_unreferenced(sha, session)
+
     await manager.broadcast({"type": "item_deleted", "id": str(item_id)})
