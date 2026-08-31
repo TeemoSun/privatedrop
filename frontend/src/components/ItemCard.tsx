@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, Clock, Copy, Download, File as FileIcon, FileText, Trash2 } from "lucide-react";
 
 import { api } from "../lib/api";
-import { fromNow } from "../lib/format";
+import { formatDateTime, fromNow } from "../lib/format";
 import type { Item } from "../lib/types";
 import { cn, formatBytes } from "../lib/utils";
 import { Button } from "./ui/Button";
@@ -66,7 +66,9 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
           ) : (
             <FileIcon className="h-3.5 w-3.5" />
           )}
-          <span>{fromNow(item.created_at)}</span>
+          <span title={formatDateTime(item.created_at)} className="cursor-default">
+            {fromNow(item.created_at)}
+          </span>
           {item.is_ephemeral && (
             <span
               className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400"
