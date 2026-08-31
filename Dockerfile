@@ -8,11 +8,12 @@ RUN npm run build
 
 # ---------- Stage 2: 后端运行时 ----------
 FROM python:3.12-slim
-ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 WORKDIR /app
 
+COPY --from=ghcr.io/astral-sh/uv:0.5.26 /uv /uvx /bin/
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN pip install --no-cache-dir uv && uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini ./
