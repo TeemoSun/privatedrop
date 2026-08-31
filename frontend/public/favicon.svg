@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Squircle Base (Muted Dark Obsidian) -->
+  <rect x="32" y="32" width="448" height="448" rx="108" fill="#18181B" />
+  <rect x="32" y="32" width="448" height="448" rx="108" fill="none" stroke="#27272A" stroke-width="4" />
+
+  <!-- iOS Share Sheet Box & Upward Arrow (Clean White) -->
+  <g fill="none" stroke="#F4F4F5" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Upward Arrow -->
+    <path d="M 256 120 V 300" />
+    <path d="M 188 188 L 256 120 L 324 188" />
+
+    <!-- Open Box Tray -->
+    <path d="M 190 220 H 164 C 146 220 132 234 132 252 V 380 C 132 398 146 412 164 412 H 348 C 366 412 380 398 380 380 V 252 C 380 234 366 220 348 220 H 322" />
+  </g>
+</svg>
+
