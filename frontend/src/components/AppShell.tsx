@@ -37,8 +37,8 @@ function handleLogout() {
 
 export function AppShell() {
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-56 flex-col border-r bg-card md:flex">
+    <div className="flex h-screen h-[100dvh] overflow-hidden bg-background">
+      <aside className="hidden w-56 shrink-0 flex-col border-r bg-card md:flex">
         <div className="border-b px-4 py-4">
           <h1 className="text-lg font-bold tracking-tight">PrivateDrop</h1>
           <p className="text-xs text-muted-foreground">{getDeviceName()}</p>
@@ -54,8 +54,8 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-card/90 px-4 py-3 backdrop-blur md:hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="shrink-0 flex items-center justify-between border-b bg-card px-4 py-2.5 md:hidden">
           <div className="flex items-center gap-2">
             <h1 className="text-base font-bold">PrivateDrop</h1>
             <span className="max-w-[140px] truncate text-xs text-muted-foreground">
@@ -66,10 +66,12 @@ export function AppShell() {
             <LogOut className="h-4 w-4" />
           </Button>
         </header>
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-4 pb-24 md:py-6 md:pb-6">
+
+        <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <Outlet />
         </main>
-        <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t bg-card/90 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur md:hidden">
+
+        <nav className="shrink-0 flex items-center justify-around border-t bg-card py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
           <NavLink
             to="/"
             end

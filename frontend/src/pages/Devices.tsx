@@ -53,7 +53,7 @@ export function Devices() {
   });
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-3">
       <h1 className="mb-2 text-xl font-semibold">设备</h1>
       {sortedDevices.length === 0 ? (
         <EmptyState

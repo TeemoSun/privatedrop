@@ -58,8 +58,14 @@ export function DropBoard() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    bottomAnchorRef.current?.scrollIntoView({ behavior });
+  }, []);
 
   const addFiles = useCallback((incomingList: FileList | File[]) => {
     const next = Array.from(incomingList)
@@ -130,41 +136,57 @@ export function DropBoard() {
     };
   }, [addFiles]);
 
-  const loadPage = useCallback(async (cursor: string | null) => {
-    const page = await api.items({ cursor: cursor ?? undefined, limit: 20 });
-    return page;
-  }, []);
-
+  // Initial load
   useEffect(() => {
     let cancelled = false;
-    void loadPage(null).then((page) => {
+    void api.items({ limit: 30 }).then((page) => {
       if (cancelled) return;
-      setList(page.items);
+      // Server returns newest-first, reverse to display oldest-to-newest (top-to-bottom)
+      setList([...page.items].reverse());
       cursorRef.current = page.next_cursor;
       setHasMore(!!page.next_cursor);
+      setTimeout(() => {
+        scrollToBottom("auto");
+      }, 50);
     });
     return () => {
       cancelled = true;
     };
-  }, [loadPage, reloadTick]);
+  }, [reloadTick, scrollToBottom]);
 
-  const loadMore = useCallback(async () => {
-    if (!cursorRef.current) return;
+  // Load older messages (at top)
+  const loadOlder = useCallback(async () => {
+    if (!cursorRef.current || loadingMore) return;
+    const container = scrollContainerRef.current;
+    const previousScrollHeight = container?.scrollHeight || 0;
+    const previousScrollTop = container?.scrollTop || 0;
+
     setLoadingMore(true);
     try {
-      const page = await loadPage(cursorRef.current);
-      setList((prev) => [...prev, ...page.items]);
+      const page = await api.items({ cursor: cursorRef.current, limit: 20 });
+      const olderItems = [...page.items].reverse();
+      setList((prev) => [...olderItems, ...prev]);
       cursorRef.current = page.next_cursor;
       setHasMore(!!page.next_cursor);
+
+      // Maintain scroll position after prepending older items
+      requestAnimationFrame(() => {
+        if (container) {
+          const heightDifference = container.scrollHeight - previousScrollHeight;
+          container.scrollTop = previousScrollTop + heightDifference;
+        }
+      });
     } finally {
       setLoadingMore(false);
     }
-  }, [loadPage]);
+  }, [loadingMore]);
 
+  // Real-time synchronization
   useWs({
     onEvent: (event) => {
       if (event.type === "item_created") {
-        setList((prev) => [event.item, ...prev.filter((i) => i.id !== event.item.id)]);
+        setList((prev) => [...prev.filter((i) => i.id !== event.item.id), event.item]);
+        setTimeout(() => scrollToBottom("smooth"), 50);
       } else if (event.type === "item_deleted") {
         setList((prev) => prev.filter((i) => i.id !== event.id));
       }
@@ -181,7 +203,6 @@ export function DropBoard() {
 
     try {
       if (files.length > 0) {
-        // Mark files as uploading
         setFiles((prev) => prev.map((f) => ({ ...f, status: "uploading", progress: 0 })));
 
         const specs = await Promise.all(
@@ -233,10 +254,12 @@ export function DropBoard() {
         setFiles([]);
         setNote("");
         setReloadTick((t) => t + 1);
+        setTimeout(() => scrollToBottom("smooth"), 100);
       } else if (trimmedNote) {
         await api.createNote(trimmedNote);
         setNote("");
         setReloadTick((t) => t + 1);
+        setTimeout(() => scrollToBottom("smooth"), 100);
       }
     } catch (e) {
       if (e instanceof Error) {
@@ -255,7 +278,7 @@ export function DropBoard() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col px-3 sm:px-4">
       {/* 全局拖拽全屏悬浮提示 */}
       {isDraggingOver && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/85 backdrop-blur-md p-6 text-center animate-in fade-in duration-150 pointer-events-none">
@@ -271,141 +294,160 @@ export function DropBoard() {
         </div>
       )}
 
-      {/* 统一输入与上传卡片 */}
-      <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:p-4 shadow-sm">
-        {/* 待上传文件列表（输入框顶部） */}
-        {files.length > 0 && (
-          <div className="flex flex-col gap-2 rounded-md bg-muted/40 p-2.5">
-            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-              <span>待上传文件 ({files.length})</span>
-              {!submitting && (
-                <button
-                  type="button"
-                  onClick={() => setFiles([])}
-                  className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  清空全部
-                </button>
-              )}
-            </div>
-            <div className="flex max-h-48 flex-col gap-1.5 overflow-y-auto">
-              {files.map((f, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2.5 rounded-md border bg-card px-3 py-2 text-sm shadow-sm"
-                >
-                  <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-xs sm:text-sm">{f.file.name}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-muted-foreground">{formatBytes(f.file.size)}</span>
-                      {f.status === "uploading" && (
-                        <span className="text-[11px] tabular-nums text-primary font-medium">{f.progress}%</span>
-                      )}
-                      {f.status === "done" && <span className="text-[11px] text-green-600 font-medium">已就绪</span>}
-                      {f.status === "error" && <span className="text-[11px] text-destructive">{f.error ?? "失败"}</span>}
-                    </div>
-                    {submitting && f.status === "uploading" && (
-                      <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
-                        <div className="h-full bg-primary transition-all duration-150" style={{ width: `${f.progress}%` }} />
-                      </div>
-                    )}
-                  </div>
-                  {!submitting && (
-                    <button
-                      type="button"
-                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                      className="shrink-0 p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-                      title="移除"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+      {/* 时间线消息流（可滚动区域，越往上越老） */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto py-3 space-y-3 pr-1"
+      >
+        {/* 加载更早内容按钮 */}
+        {hasMore && (
+          <div className="flex justify-center py-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadOlder}
+              disabled={loadingMore}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              {loadingMore ? "加载更早内容中…" : "↑ 加载更早内容"}
+            </Button>
           </div>
         )}
 
-        <Textarea
-          placeholder="写一条笔记，或添加文件后发送…"
-          value={note}
-          rows={2}
-          onChange={(e) => setNote(e.target.value)}
-          onPaste={handlePaste}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-              e.preventDefault();
-              void handleSend();
-            }
-          }}
-        />
-
-        {error && <p className="text-xs text-destructive px-1">{error}</p>}
-
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            {files.length > 0 ? `已选 ${files.length} 个文件` : "Ctrl+Enter 快捷发送"}
-          </span>
-          <div className="flex items-center gap-2 ml-auto">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files) addFiles(e.target.files);
-                e.target.value = "";
-              }}
+        {/* 消息列表 / 空状态 */}
+        {list.length === 0 ? (
+          <div className="flex h-full min-h-[240px] items-center justify-center">
+            <EmptyState
+              icon={<Inbox className="h-10 w-10 text-muted-foreground" />}
+              title="还没有任何内容"
+              hint="在下方发送一条笔记，或拖拽 / 点击加号添加文件"
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={submitting}
-              onClick={() => fileInputRef.current?.click()}
-              title="添加文件"
-              className="gap-1 text-xs font-normal"
-            >
-              <Plus className="h-4 w-4" />
-              <span>添加文件</span>
-            </Button>
-            <Button
-              size="sm"
-              disabled={submitting || (!note.trim() && files.length === 0)}
-              onClick={handleSend}
-              className="text-xs px-4"
-            >
-              {submitting && <Spinner className="mr-1" />}
-              {submitting ? "上传中…" : "发送"}
-            </Button>
           </div>
-        </div>
-      </div>
-
-      {/* 时间线列表 */}
-      {list.length === 0 ? (
-        <EmptyState
-          icon={<Inbox className="h-10 w-10 text-muted-foreground" />}
-          title="还没有任何内容"
-          hint="发送一条笔记，或拖拽 / 点击加号添加文件，其他设备会实时看到"
-        />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {list.map((item) => (
+        ) : (
+          list.map((item) => (
             <ItemCard
               key={item.id}
               item={item}
               onDeleted={(id) => setList((prev) => prev.filter((i) => i.id !== id))}
             />
-          ))}
-          {hasMore && (
-            <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? "加载中…" : "加载更多"}
-            </Button>
+          ))
+        )}
+        <div ref={bottomAnchorRef} />
+      </div>
+
+      {/* 底部输入与发送卡片（固定在底部） */}
+      <div className="shrink-0 pt-2 pb-2 sm:pb-3">
+        <div className="flex flex-col gap-2 rounded-lg border bg-card p-2.5 sm:p-3 shadow-sm">
+          {/* 待上传文件列表（输入框顶部） */}
+          {files.length > 0 && (
+            <div className="flex flex-col gap-1.5 rounded-md bg-muted/40 p-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <span>待上传文件 ({files.length})</span>
+                {!submitting && (
+                  <button
+                    type="button"
+                    onClick={() => setFiles([])}
+                    className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    清空全部
+                  </button>
+                )}
+              </div>
+              <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto">
+                {files.map((f, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 rounded-md border bg-card px-2.5 py-1.5 text-sm shadow-sm"
+                  >
+                    <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-xs sm:text-sm">{f.file.name}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground">{formatBytes(f.file.size)}</span>
+                        {f.status === "uploading" && (
+                          <span className="text-[11px] tabular-nums text-primary font-medium">{f.progress}%</span>
+                        )}
+                        {f.status === "done" && <span className="text-[11px] text-green-600 font-medium">已就绪</span>}
+                        {f.status === "error" && <span className="text-[11px] text-destructive">{f.error ?? "失败"}</span>}
+                      </div>
+                      {submitting && f.status === "uploading" && (
+                        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="h-full bg-primary transition-all duration-150" style={{ width: `${f.progress}%` }} />
+                        </div>
+                      )}
+                    </div>
+                    {!submitting && (
+                      <button
+                        type="button"
+                        onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="shrink-0 p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
+                        title="移除"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
+
+          <Textarea
+            placeholder="写一条笔记，或添加文件后发送…"
+            value={note}
+            rows={2}
+            onChange={(e) => setNote(e.target.value)}
+            onPaste={handlePaste}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                void handleSend();
+              }
+            }}
+          />
+
+          {error && <p className="text-xs text-destructive px-1">{error}</p>}
+
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {files.length > 0 ? `已选 ${files.length} 个文件` : "Ctrl+Enter 快捷发送"}
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={submitting}
+                onClick={() => fileInputRef.current?.click()}
+                title="添加文件"
+                className="gap-1 text-xs font-normal"
+              >
+                <Plus className="h-4 w-4" />
+                <span>添加文件</span>
+              </Button>
+              <Button
+                size="sm"
+                disabled={submitting || (!note.trim() && files.length === 0)}
+                onClick={handleSend}
+                className="text-xs px-4"
+              >
+                {submitting && <Spinner className="mr-1" />}
+                {submitting ? "上传中…" : "发送"}
+              </Button>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
