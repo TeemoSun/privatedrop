@@ -409,7 +409,10 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
             onChange={(e) => setNote(e.target.value)}
             onPaste={handlePaste}
             onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              if (e.key === "Enter" && !e.shiftKey) {
+                if (e.nativeEvent.isComposing) {
+                  return;
+                }
                 e.preventDefault();
                 void handleSend();
               }
@@ -420,7 +423,7 @@ export function DropBoard({ isEphemeral = false }: DropBoardProps) {
 
           <div className="flex items-center justify-between pt-0.5">
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              {files.length > 0 ? `已选 ${files.length} 个文件` : "Ctrl+Enter 快捷发送"}
+              {files.length > 0 ? `已选 ${files.length} 个文件` : "Enter 发送，Shift+Enter 换行"}
             </span>
             <div className="flex items-center gap-2 ml-auto">
               <input
