@@ -29,9 +29,18 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
-    min-height: 100vh;
-    min-height: 100dvh;
+    touch-action: pan-x pan-y;
   }
 }

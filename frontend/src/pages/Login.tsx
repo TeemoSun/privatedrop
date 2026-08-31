@@ -44,7 +44,7 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+    <div className="fixed inset-0 flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle>PrivateDrop</CardTitle>

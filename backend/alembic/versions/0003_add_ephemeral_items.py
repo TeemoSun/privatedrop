@@ -40,3 +40,4 @@ def downgrade() -> None:
     op.drop_index("ix_drop_items_is_ephemeral", table_name="drop_items")
     op.drop_column("drop_items", "expires_at")
     op.drop_column("drop_items", "is_ephemeral")
+

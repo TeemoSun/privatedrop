@@ -41,7 +41,7 @@ function handleLogout() {
 
 export function AppShell() {
   return (
-    <div className="flex h-screen h-[100dvh] overflow-hidden bg-background">
+    <div className="fixed inset-0 flex overflow-hidden bg-background">
       <aside className="hidden w-56 shrink-0 flex-col border-r bg-card md:flex">
         <div className="border-b px-4 py-4">
           <h1 className="text-lg font-bold tracking-tight">PrivateDrop</h1>
