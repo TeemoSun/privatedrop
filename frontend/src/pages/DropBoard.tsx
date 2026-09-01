@@ -374,7 +374,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       {/* 时间线消息流（可滚动区域，越往上越老） */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto py-3 space-y-3 pr-1"
+        className="flex-1 min-h-0 overflow-y-auto py-4 space-y-6 pr-1"
       >
         {/* 加载更早内容按钮 */}
         {hasMore && (

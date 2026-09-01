@@ -84,8 +84,8 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
   };
 
   return (
-    <div className="group flex flex-col gap-1.5">
-      {/* 框外顶部栏：左侧元信息（类型、发送时间、剩余时间），右侧折叠三点菜单 */}
+    <div className="group flex flex-col gap-1">
+      {/* 框外顶部栏：紧贴自身卡片，左侧元信息，右侧折叠三点菜单 */}
       <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
         {/* 框外左上方 */}
         <div className="flex items-center gap-1.5 flex-wrap">
