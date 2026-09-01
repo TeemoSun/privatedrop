@@ -113,10 +113,16 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
   const [loadingMore, setLoadingMore] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dragCounter = useRef(0);
+  const initialLoadedRef = useRef(false);
+
+  useEffect(() => {
+    initialLoadedRef.current = false;
+  }, [isEphemeral, isSecret]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -209,6 +215,9 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       setHasMore(!!page.next_cursor);
       setTimeout(() => {
         scrollToBottom("auto");
+        setTimeout(() => {
+          initialLoadedRef.current = true;
+        }, 100);
       }, 50);
     });
     return () => {
@@ -247,6 +256,38 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       setLoadingMore(false);
     }
   }, [loadingMore, isEphemeral, isSecret]);
+
+  // Auto load older on approaching top via IntersectionObserver
+  useEffect(() => {
+    const sentinel = topSentinelRef.current;
+    const container = scrollContainerRef.current;
+    if (!sentinel || !container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && initialLoadedRef.current && hasMore && !loadingMore) {
+          void loadOlder();
+        }
+      },
+      {
+        root: container,
+        rootMargin: "120px 0px 0px 0px",
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loadOlder]);
+
+  // Scroll listener backup
+  const handleContainerScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !initialLoadedRef.current || !hasMore || loadingMore) return;
+    if (container.scrollTop <= 60) {
+      void loadOlder();
+    }
+  }, [hasMore, loadingMore, loadOlder]);
 
   // Real-time synchronization
   useWs({
@@ -379,20 +420,27 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       {/* 时间线消息流（可滚动区域，越往上越老） */}
       <div
         ref={scrollContainerRef}
+        onScroll={handleContainerScroll}
         className="flex-1 min-h-0 overflow-y-auto py-4 space-y-6 pr-1"
       >
-        {/* 加载更早内容按钮 */}
+        {/* 加载更早内容哨兵与提示 */}
         {hasMore && (
-          <div className="flex justify-center py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={loadOlder}
-              disabled={loadingMore}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              {loadingMore ? "加载更早内容中…" : "↑ 加载更早内容"}
-            </Button>
+          <div ref={topSentinelRef} className="flex justify-center py-2 min-h-[32px]">
+            {loadingMore ? (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Spinner className="h-3.5 w-3.5" />
+                <span>加载更早内容中…</span>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadOlder}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                ↑ 加载更早内容
+              </Button>
+            )}
           </div>
         )}
 
