@@ -31,10 +31,18 @@ _PLACEHOLDERS = {"", "admin", "change-me", "changeme", "password", "secret"}
 
 def validate_secrets() -> None:
     problems: list[str] = []
-    if not settings.app_password or settings.app_password.strip() in _PLACEHOLDERS:
+    pwd = settings.app_password.strip()
+    if not pwd or pwd.lower() in _PLACEHOLDERS:
         problems.append("APP_PASSWORD must be set to a non-placeholder value")
-    if not settings.jwt_secret or settings.jwt_secret.strip() in _PLACEHOLDERS:
+    elif len(pwd) < 6:
+        problems.append("APP_PASSWORD must be at least 6 characters long")
+
+    secret = settings.jwt_secret.strip()
+    if not secret or secret.lower() in _PLACEHOLDERS:
         problems.append("JWT_SECRET must be set to a non-placeholder value")
+    elif len(secret) < 16:
+        problems.append("JWT_SECRET must be at least 16 characters long")
+
     if problems:
         raise RuntimeError("invalid startup configuration:\n  - " + "\n  - ".join(problems))
 
