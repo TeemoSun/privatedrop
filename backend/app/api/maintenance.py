@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import uuid
 from fastapi import APIRouter, Depends
@@ -61,7 +62,7 @@ async def check_storage(
                     )
 
     # 2. Scan physical files on disk
-    disk_files = storage.scan_physical_files()
+    disk_files = await asyncio.to_thread(storage.scan_physical_files)
     total_disk_files = len(disk_files)
     total_disk_size = sum(f["size"] for f in disk_files)
 
@@ -116,7 +117,7 @@ async def fix_storage(
             broken_items.append(item)
 
     # 2. Clean orphan physical files on disk
-    disk_files = storage.scan_physical_files()
+    disk_files = await asyncio.to_thread(storage.scan_physical_files)
     deleted_orphan_count = 0
     deleted_orphan_size = 0
 
