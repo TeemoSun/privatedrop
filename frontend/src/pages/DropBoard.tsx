@@ -468,7 +468,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                       {f.status === "uploading" && (
                         <span className="text-[11px] tabular-nums text-primary font-medium">{f.progress}%</span>
                       )}
-                      {f.status === "done" && <span className="text-[11px] text-green-600 font-medium">已就绪</span>}
+                      {f.status === "done" && <span className="text-[11px] text-muted-foreground font-medium">已就绪</span>}
                       {f.status === "error" && <span className="text-[11px] text-destructive">{f.error ?? "失败"}</span>}
                     </div>
                     {submitting && f.status === "uploading" && (

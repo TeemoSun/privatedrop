@@ -99,7 +99,7 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
           </span>
           {item.is_ephemeral && (
             <span
-              className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 select-none"
+              className="inline-flex items-center gap-1 rounded bg-muted/80 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground select-none"
               title={item.expires_at ? `到期时间: ${new Date(item.expires_at).toLocaleString()}` : "24小时后自动销毁"}
             >
               <Clock className="h-3 w-3" />
@@ -133,8 +133,8 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
                 >
                   {copied ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-green-600" />
-                      <span className="text-green-600 font-medium">已复制</span>
+                      <Check className="h-3.5 w-3.5 text-foreground" />
+                      <span className="text-foreground font-medium">已复制</span>
                     </>
                   ) : (
                     <>
