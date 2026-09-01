@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 DRAFT_STALE_AFTER = timedelta(seconds=settings.upload_url_ttl_seconds * 4)
 
-
 TRASH_RETENTION = timedelta(days=30)
+TRASH_EPHEMERAL_RETENTION = timedelta(hours=24)
 
 
 def _is_ready(item: DropItem) -> bool:
@@ -83,12 +83,20 @@ async def _cleanup_expired_ephemeral_items() -> int:
 
 
 async def _cleanup_expired_trash_items() -> int:
-    cutoff = datetime.now(timezone.utc) - TRASH_RETENTION
+    now = datetime.now(timezone.utc)
+    cutoff_normal = now - TRASH_RETENTION
+    cutoff_ephemeral = now - TRASH_EPHEMERAL_RETENTION
     removed = 0
     async with SessionLocal() as session:
         result = await session.execute(
             select(DropItem.id)
-            .where(DropItem.deleted_at.is_not(None), DropItem.deleted_at <= cutoff)
+            .where(
+                DropItem.deleted_at.is_not(None),
+                or_(
+                    and_(DropItem.is_ephemeral == False, DropItem.deleted_at <= cutoff_normal),  # noqa: E712
+                    and_(DropItem.is_ephemeral == True, DropItem.deleted_at <= cutoff_ephemeral),  # noqa: E712
+                ),
+            )
             .order_by(DropItem.deleted_at.asc(), DropItem.id.asc())
             .limit(100)
         )

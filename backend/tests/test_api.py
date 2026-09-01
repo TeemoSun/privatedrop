@@ -600,29 +600,47 @@ async def test_cleanup_removes_30_day_expired_trash_items(client, monkeypatch) -
     expired_trash = models.DropItem(
         kind="note",
         note="expired trash",
+        is_ephemeral=False,
         created_by_device=tokens["device_id"],
         deleted_at=now - timedelta(days=31),
     )
     active_trash = models.DropItem(
         kind="note",
         note="active trash",
+        is_ephemeral=False,
         created_by_device=tokens["device_id"],
         deleted_at=now - timedelta(days=5),
     )
+    expired_ephemeral_trash = models.DropItem(
+        kind="note",
+        note="expired ephemeral trash",
+        is_ephemeral=True,
+        created_by_device=tokens["device_id"],
+        deleted_at=now - timedelta(hours=25),
+    )
+    active_ephemeral_trash = models.DropItem(
+        kind="note",
+        note="active ephemeral trash",
+        is_ephemeral=True,
+        created_by_device=tokens["device_id"],
+        deleted_at=now - timedelta(hours=2),
+    )
 
     async with db_module.SessionLocal() as s:
-        s.add_all([expired_trash, active_trash])
+        s.add_all([expired_trash, active_trash, expired_ephemeral_trash, active_ephemeral_trash])
         await s.commit()
 
     monkeypatch.setattr(cleanup, "SessionLocal", db_module.SessionLocal)
 
     removed = await cleanup._cleanup_expired_trash_items()
-    assert removed == 1
+    assert removed == 2
 
     async with db_module.SessionLocal() as s:
         ids = [row[0] for row in (await s.execute(select(models.DropItem.id))).all()]
         assert expired_trash.id not in ids
+        assert expired_ephemeral_trash.id not in ids
         assert active_trash.id in ids
+        assert active_ephemeral_trash.id in ids
 
 
 async def test_secret_timeline_flow(client) -> None:

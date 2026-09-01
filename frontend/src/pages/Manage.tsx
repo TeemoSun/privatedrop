@@ -33,12 +33,21 @@ import { formatBytes, cn } from "../lib/utils";
 import { formatDateTime, fromNow } from "../lib/format";
 import type { Item } from "../lib/types";
 
-function formatTrashRemaining(deletedAtStr?: string | null): string {
+function formatTrashRemaining(deletedAtStr?: string | null, isEphemeral?: boolean): string {
   if (!deletedAtStr) return "保留中";
   const deletedAt = new Date(deletedAtStr).getTime();
-  const expiresAt = deletedAt + 30 * 24 * 60 * 60 * 1000;
+  const ttlMs = isEphemeral ? 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+  const expiresAt = deletedAt + ttlMs;
   const diffMs = expiresAt - Date.now();
   if (diffMs <= 0) return "即将彻底销毁";
+
+  if (isEphemeral) {
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 0) return `剩 ${hours} 小时彻底销毁`;
+    return `剩 ${Math.max(1, minutes)} 分钟彻底销毁`;
+  }
+
   const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
   if (diffDays <= 1) {
     const diffHours = Math.max(1, Math.ceil(diffMs / (60 * 60 * 1000)));
@@ -123,7 +132,7 @@ function ManageMenu() {
               <div>
                 <div className="font-medium text-sm">回收站</div>
                 <div className="text-xs text-muted-foreground">
-                  已删除的内容与文件保留 30 天
+                  已删除内容保留（常规 30 天，中转站 24 小时）
                 </div>
               </div>
             </div>
@@ -532,7 +541,7 @@ function TrashSubPage() {
       <div>
         <h1 className="text-xl font-bold tracking-tight">回收站</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          被删除的文字与文件在此保留 30 天，到期后自动彻底销毁
+          被删除的文字与文件在此保留（常规内容 30 天，临时中转 24 小时），到期后自动彻底销毁
         </p>
       </div>
 
@@ -555,9 +564,14 @@ function TrashSubPage() {
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Trash2 className="h-3.5 w-3.5 text-rose-500" />
                     <span>删除于 {fromNow(item.deleted_at || item.created_at)}</span>
+                    {item.is_ephemeral && (
+                      <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                        临时中转
+                      </span>
+                    )}
                   </div>
                   <span className="rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-medium text-rose-600 dark:text-rose-400">
-                    {formatTrashRemaining(item.deleted_at)}
+                    {formatTrashRemaining(item.deleted_at, item.is_ephemeral)}
                   </span>
                 </div>
 

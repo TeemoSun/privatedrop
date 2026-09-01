@@ -382,6 +382,8 @@ async def restore_item(
     item = await _get_item_with_files(session, item_id)
     if item.deleted_at is not None:
         item.deleted_at = None
+        if item.is_ephemeral and (item.expires_at is None or item.expires_at <= utc_now()):
+            item.expires_at = utc_now() + timedelta(hours=24)
         await session.commit()
         item_out = await _fetch_item_out(session, item.id)
         await manager.broadcast({"type": "item_created", "item": item_out.model_dump(mode="json")})
