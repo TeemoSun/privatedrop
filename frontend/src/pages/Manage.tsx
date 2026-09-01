@@ -56,6 +56,120 @@ function formatTrashRemaining(deletedAtStr?: string | null, isEphemeral?: boolea
   return `剩 ${diffDays} 天彻底销毁`;
 }
 
+interface ConfirmDialogProps {
+  open: boolean;
+  title: string;
+  description: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: "destructive" | "default";
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading?: boolean;
+}
+
+function ConfirmDialog({
+  open,
+  title,
+  description,
+  confirmText = "确定",
+  cancelText = "取消",
+  variant = "default",
+  onConfirm,
+  onCancel,
+  loading = false,
+}: ConfirmDialogProps) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4 animate-in fade-in-0">
+      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+          <p className="text-sm text-muted-foreground mt-2 whitespace-pre-line leading-relaxed">{description}</p>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
+            {cancelText}
+          </Button>
+          <Button
+            variant={variant === "destructive" ? "destructive" : "default"}
+            size="sm"
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {loading ? <Spinner className="h-3.5 w-3.5 mr-1" /> : null}
+            {confirmText}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PromptDialogProps {
+  open: boolean;
+  title: string;
+  initialValue: string;
+  placeholder?: string;
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm: (val: string) => void;
+  onCancel: () => void;
+  loading?: boolean;
+}
+
+function PromptDialog({
+  open,
+  title,
+  initialValue,
+  placeholder,
+  confirmText = "保存",
+  cancelText = "取消",
+  onConfirm,
+  onCancel,
+  loading = false,
+}: PromptDialogProps) {
+  const [val, setVal] = useState(initialValue);
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4 animate-in fade-in-0">
+      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-lg space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        </div>
+        <input
+          autoFocus
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={val}
+          placeholder={placeholder}
+          maxLength={255}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && val.trim()) {
+              e.preventDefault();
+              onConfirm(val.trim());
+            }
+          }}
+        />
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
+            {cancelText}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => onConfirm(val.trim())}
+            disabled={!val.trim() || loading}
+          >
+            {loading ? <Spinner className="h-3.5 w-3.5 mr-1" /> : null}
+            {confirmText}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function handleLogout() {
   api.logout().finally(() => {
     clearTokens();
@@ -81,14 +195,39 @@ function ManageMenu() {
 
   const [sendOnEnter, setSendOnEnterState] = useState(() => getSendOnEnter());
   const [theme, setThemeState] = useState<Theme>(() => getTheme());
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [currentDevName, setCurrentDevName] = useState(() => getDeviceName());
+  const [renaming, setRenaming] = useState(false);
 
   const handleThemeChange = (newTheme: Theme) => {
     setThemeState(newTheme);
     setTheme(newTheme);
   };
 
+  const handleRenameCurrent = async (newName: string) => {
+    setRenaming(true);
+    try {
+      await api.renameDevice(getDeviceId(), newName);
+      setDeviceName(newName);
+      setCurrentDevName(newName);
+      setShowRenameDialog(false);
+    } finally {
+      setRenaming(false);
+    }
+  };
+
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-6">
+      <PromptDialog
+        open={showRenameDialog}
+        title="修改当前设备名称"
+        initialValue={currentDevName}
+        placeholder="输入新的设备名称"
+        loading={renaming}
+        onConfirm={handleRenameCurrent}
+        onCancel={() => setShowRenameDialog(false)}
+      />
+
       <div>
         <h1 className="text-xl font-bold tracking-tight">管理</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -272,21 +411,12 @@ function ManageMenu() {
           <div className="flex items-center justify-between p-4">
             <div className="text-sm">
               <div className="font-medium">当前设备名称</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{getDeviceName()}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{currentDevName}</div>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const newName = prompt("输入新的设备名称：", getDeviceName());
-                if (newName && newName.trim()) {
-                  const devId = getDeviceId();
-                  api.renameDevice(devId, newName.trim()).then(() => {
-                    setDeviceName(newName.trim());
-                    window.location.reload();
-                  });
-                }
-              }}
+              onClick={() => setShowRenameDialog(true)}
             >
               <Pencil className="h-3.5 w-3.5 mr-1" />
               改名
@@ -319,6 +449,7 @@ function DevicesSubPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [deviceToDelete, setDeviceToDelete] = useState<{ id: string; name: string; isCurrent: boolean } | null>(null);
   const currentDeviceId = getDeviceId();
 
   const { data: devices = [], isLoading } = useQuery({
@@ -345,6 +476,7 @@ function DevicesSubPage() {
         clearTokens();
         window.dispatchEvent(new Event("pd:unauthorized"));
       }
+      setDeviceToDelete(null);
     },
   });
 
@@ -358,6 +490,23 @@ function DevicesSubPage() {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-3">
+      <ConfirmDialog
+        open={!!deviceToDelete}
+        title="确认解绑设备"
+        description={
+          deviceToDelete?.isCurrent
+            ? "确定删除当前设备？删除后将立即退出登录。"
+            : `确定删除设备「${deviceToDelete?.name}」？该设备的登录将立即失效。`
+        }
+        variant="destructive"
+        confirmText="删除"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deviceToDelete) deleteMutation.mutate(deviceToDelete.id);
+        }}
+        onCancel={() => setDeviceToDelete(null)}
+      />
+
       <div className="flex items-center gap-2 mb-2">
         <Button
           variant="ghost"
@@ -455,12 +604,7 @@ function DevicesSubPage() {
                         variant="destructive"
                         disabled={deleteMutation.isPending}
                         onClick={() => {
-                          const msg = isCurrent
-                            ? "确定删除当前设备？删除后将立即退出登录。"
-                            : `删除设备「${device.name}」？该设备的登录将立即失效。`;
-                          if (confirm(msg)) {
-                            deleteMutation.mutate(device.id);
-                          }
+                          setDeviceToDelete({ id: device.id, name: device.name, isCurrent });
                         }}
                       >
                         删除
@@ -480,6 +624,8 @@ function DevicesSubPage() {
 function TrashSubPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
+  const [purgeItemId, setPurgeItemId] = useState<string | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["trash"],
@@ -498,6 +644,7 @@ function TrashSubPage() {
     mutationFn: (id: string) => api.purgeItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trash"] });
+      setPurgeItemId(null);
     },
   });
 
@@ -505,11 +652,40 @@ function TrashSubPage() {
     mutationFn: api.emptyTrash,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trash"] });
+      setConfirmEmpty(false);
     },
   });
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-3">
+      <ConfirmDialog
+        open={confirmEmpty}
+        title="确认一键清空回收站"
+        description="确定一键清空回收站？所有内容和物理文件将被永久彻底销毁，无法找回。"
+        variant="destructive"
+        confirmText="清空"
+        loading={emptyMutation.isPending}
+        onConfirm={() => {
+          emptyMutation.mutate();
+        }}
+        onCancel={() => setConfirmEmpty(false)}
+      />
+
+      <ConfirmDialog
+        open={!!purgeItemId}
+        title="确认彻底删除"
+        description="确定彻底删除此条目？关联的物理文件将被彻底粉碎无法恢复。"
+        variant="destructive"
+        confirmText="彻底删除"
+        loading={purgeMutation.isPending}
+        onConfirm={() => {
+          if (purgeItemId) {
+            purgeMutation.mutate(purgeItemId);
+          }
+        }}
+        onCancel={() => setPurgeItemId(null)}
+      />
+
       <div className="flex items-center justify-between gap-2 mb-2">
         <Button
           variant="ghost"
@@ -526,11 +702,7 @@ function TrashSubPage() {
             variant="destructive"
             size="sm"
             disabled={emptyMutation.isPending}
-            onClick={() => {
-              if (confirm("确定一键清空回收站？所有内容和物理文件将被永久彻底销毁，无法找回。")) {
-                emptyMutation.mutate();
-              }
-            }}
+            onClick={() => setConfirmEmpty(true)}
           >
             <Trash2 className="h-4 w-4 mr-1" />
             清空回收站
@@ -618,11 +790,7 @@ function TrashSubPage() {
                     size="sm"
                     variant="destructive"
                     disabled={purgeMutation.isPending}
-                    onClick={() => {
-                      if (confirm("确定彻底删除此条目？关联的物理文件将被彻底粉碎无法恢复。")) {
-                        purgeMutation.mutate(item.id);
-                      }
-                    }}
+                    onClick={() => setPurgeItemId(item.id)}
                     className="gap-1 text-xs"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -642,6 +810,7 @@ function StorageCheckSubPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [fixSuccessMsg, setFixSuccessMsg] = useState<string | null>(null);
+  const [showFixConfirm, setShowFixConfirm] = useState(false);
 
   const {
     data: storageData,
@@ -659,6 +828,7 @@ function StorageCheckSubPage() {
       queryClient.invalidateQueries({ queryKey: ["storage-check"] });
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["trash"] });
+      setShowFixConfirm(false);
       setFixSuccessMsg(
         `修复完成：已删除 ${result.deleted_orphan_files_count} 个多余物理文件（释放 ${formatBytes(
           result.deleted_orphan_files_size
@@ -671,6 +841,20 @@ function StorageCheckSubPage() {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-4">
+      <ConfirmDialog
+        open={showFixConfirm}
+        title="确认一键清理修复"
+        description={`检测到 ${(storageData?.missing_files.length || 0) + (storageData?.orphan_files.length || 0)} 项对不上的异常内容。\n\n确定执行一键修复？将彻底删除所有数据库无引用的多余物理文件，并清理所有磁盘文件已丢失的失效数据库记录。`}
+        variant="destructive"
+        confirmText="一键修复"
+        loading={fixMutation.isPending}
+        onConfirm={() => {
+          setFixSuccessMsg(null);
+          fixMutation.mutate();
+        }}
+        onCancel={() => setShowFixConfirm(false)}
+      />
+
       <div className="flex items-center justify-between gap-2">
         <Button
           variant="ghost"
@@ -702,19 +886,7 @@ function StorageCheckSubPage() {
               variant="destructive"
               size="sm"
               disabled={fixMutation.isPending}
-              onClick={() => {
-                const totalIssues =
-                  (storageData?.missing_files.length || 0) +
-                  (storageData?.orphan_files.length || 0);
-                if (
-                  confirm(
-                    `检测到 ${totalIssues} 项对不上的异常内容。\n\n确定执行一键修复？将彻底删除所有数据库无引用的多余物理文件，并清理所有磁盘文件已丢失的失效数据库记录。`
-                  )
-                ) {
-                  setFixSuccessMsg(null);
-                  fixMutation.mutate();
-                }
-              }}
+              onClick={() => setShowFixConfirm(true)}
               className="gap-1 text-xs"
             >
               <Wrench className="h-3.5 w-3.5" />
