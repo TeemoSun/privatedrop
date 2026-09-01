@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { File as FileIcon, FileUp, Inbox, Lock, Plus, X } from "lucide-react";
+import { File as FileIcon, FileUp, Inbox, Lock, Plus, SendHorizontal, X } from "lucide-react";
 
 import { api, getAccessToken } from "../lib/api";
 import { isSecretUnlocked, lockSecretSession } from "../lib/secretSession";
@@ -8,10 +8,9 @@ import { getSendOnEnter } from "../lib/settings";
 import { ItemCard } from "../components/ItemCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState, Spinner } from "../components/ui/Misc";
-import { Textarea } from "../components/ui/Textarea";
 import { useWs } from "../hooks/useWs";
 import type { Item } from "../lib/types";
-import { formatBytes, sha256Hex } from "../lib/utils";
+import { cn, formatBytes, sha256Hex } from "../lib/utils";
 
 const maxFileSize = 5 * 1024 * 1024 * 1024; // 5GB
 
@@ -117,7 +116,15 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dragCounter = useRef(0);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [note]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     bottomAnchorRef.current?.scrollIntoView({ behavior });
@@ -431,128 +438,131 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       </div>
 
       {/* 底部输入与发送卡片（固定在底部） */}
-      <div className="shrink-0 pt-2 pb-2 sm:pb-3">
-        <div className="flex flex-col gap-2 rounded-lg border bg-card p-2.5 sm:p-3 shadow-sm">
-          {/* 待上传文件列表（输入框顶部） */}
-          {files.length > 0 && (
-            <div className="flex flex-col gap-1.5 rounded-md bg-muted/40 p-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                <span>待上传文件 ({files.length})</span>
-                {!submitting && (
-                  <button
-                    type="button"
-                    onClick={() => setFiles([])}
-                    className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    清空全部
-                  </button>
-                )}
-              </div>
-              <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto">
-                {files.map((f, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2.5 rounded-md border bg-card px-2.5 py-1.5 text-sm shadow-sm"
-                  >
-                    <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-xs sm:text-sm">{f.file.name}</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground">{formatBytes(f.file.size)}</span>
-                        {f.status === "uploading" && (
-                          <span className="text-[11px] tabular-nums text-primary font-medium">{f.progress}%</span>
-                        )}
-                        {f.status === "done" && <span className="text-[11px] text-green-600 font-medium">已就绪</span>}
-                        {f.status === "error" && <span className="text-[11px] text-destructive">{f.error ?? "失败"}</span>}
-                      </div>
-                      {submitting && f.status === "uploading" && (
-                        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
-                          <div className="h-full bg-primary transition-all duration-150" style={{ width: `${f.progress}%` }} />
-                        </div>
+      <div className="shrink-0 pt-1 pb-2 sm:pb-3">
+        {/* 待上传文件列表（输入框顶部） */}
+        {files.length > 0 && (
+          <div className="mb-2 flex flex-col gap-1.5 rounded-xl border bg-card p-2 shadow-xs">
+            <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+              <span>待上传文件 ({files.length})</span>
+              {!submitting && (
+                <button
+                  type="button"
+                  onClick={() => setFiles([])}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                >
+                  清空全部
+                </button>
+              )}
+            </div>
+            <div className="flex max-h-36 flex-col gap-1.5 overflow-y-auto">
+              {files.map((f, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2.5 rounded-lg border bg-muted/40 px-2.5 py-1.5 text-sm"
+                >
+                  <FileIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-xs sm:text-sm">{f.file.name}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">{formatBytes(f.file.size)}</span>
+                      {f.status === "uploading" && (
+                        <span className="text-[11px] tabular-nums text-primary font-medium">{f.progress}%</span>
                       )}
+                      {f.status === "done" && <span className="text-[11px] text-green-600 font-medium">已就绪</span>}
+                      {f.status === "error" && <span className="text-[11px] text-destructive">{f.error ?? "失败"}</span>}
                     </div>
-                    {!submitting && (
-                      <button
-                        type="button"
-                        onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                        className="shrink-0 p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-                        title="移除"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                    {submitting && f.status === "uploading" && (
+                      <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-full bg-primary transition-all duration-150" style={{ width: `${f.progress}%` }} />
+                      </div>
                     )}
                   </div>
-                ))}
-              </div>
+                  {!submitting && (
+                    <button
+                      type="button"
+                      onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="shrink-0 p-1 text-muted-foreground hover:text-foreground rounded transition-colors cursor-pointer"
+                      title="移除"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          <Textarea
-            placeholder={
-              getSendOnEnter()
-                ? "写一条笔记，或添加文件后发送… (Enter 发送)"
-                : "写一条笔记，或添加文件后发送…"
-            }
-            value={note}
-            rows={2}
-            onChange={(e) => setNote(e.target.value)}
-            onPaste={handlePaste}
-            onKeyDown={(e) => {
-              if (getSendOnEnter() && e.key === "Enter" && !e.shiftKey) {
-                if (e.nativeEvent.isComposing) {
-                  return;
-                }
-                e.preventDefault();
-                void handleSend();
-              }
+        {error && <p className="mb-1.5 px-2 text-xs text-destructive">{error}</p>}
+
+        {/* 紧凑型输入条 */}
+        <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="*/*"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = "";
             }}
           />
 
-          {error && <p className="text-xs text-destructive px-1">{error}</p>}
-
-          <div className="flex items-center justify-between pt-0.5">
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              {files.length > 0
-                ? `已选 ${files.length} 个文件`
-                : getSendOnEnter()
-                  ? "Enter 发送，Shift+Enter 换行"
-                  : "点击发送按钮发送"}
-            </span>
-            <div className="flex items-center gap-2 ml-auto">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="*/*"
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files) addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={submitting}
-                onClick={() => fileInputRef.current?.click()}
-                title="添加文件"
-                className="gap-1 text-xs font-normal"
-              >
-                <Plus className="h-4 w-4" />
-                <span>添加文件</span>
-              </Button>
-              <Button
-                size="sm"
-                disabled={submitting || (!note.trim() && files.length === 0)}
-                onClick={handleSend}
-                className="text-xs px-4"
-              >
-                {submitting && <Spinner className="mr-1" />}
-                {submitting ? "上传中…" : "发送"}
-              </Button>
-            </div>
+          {/* 窄型胶囊输入框（内嵌发送箭头） */}
+          <div className="relative flex min-h-[42px] flex-1 items-end rounded-2xl border border-input bg-card shadow-xs transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={note}
+              placeholder={
+                getSendOnEnter()
+                  ? "写一条笔记，或添加文件后发送… (Enter 发送)"
+                  : "写一条笔记，或添加文件后发送…"
+              }
+              onChange={(e) => setNote(e.target.value)}
+              onPaste={handlePaste}
+              onKeyDown={(e) => {
+                if (getSendOnEnter() && e.key === "Enter" && !e.shiftKey) {
+                  if (e.nativeEvent.isComposing) {
+                    return;
+                  }
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
+              className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent py-2.5 pl-3.5 pr-2 text-sm leading-relaxed placeholder:text-muted-foreground focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={submitting || (!note.trim() && files.length === 0)}
+              className={cn(
+                "my-1.5 mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer",
+                note.trim() || files.length > 0
+                  ? "text-blue-600 hover:text-blue-700 active:scale-95 dark:text-blue-400"
+                  : "text-muted-foreground/30 cursor-not-allowed",
+              )}
+              title="发送"
+            >
+              {submitting ? (
+                <Spinner className="h-4 w-4 text-blue-600" />
+              ) : (
+                <SendHorizontal className="h-5 w-5" />
+              )}
+            </button>
           </div>
+
+          {/* 右侧圆形添加文件按钮 (+) */}
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-xs transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 cursor-pointer"
+            title="添加文件"
+          >
+            <Plus className="h-5 w-5 stroke-[2.5]" />
+          </button>
         </div>
       </div>
     </div>
