@@ -121,8 +121,15 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
 
 async function errorMessage(resp: Response): Promise<string> {
   try {
-    const body = (await resp.json()) as { detail?: string };
-    return typeof body.detail === "string" ? body.detail : resp.statusText;
+    const body = (await resp.json()) as { detail?: string | Array<{ msg?: string }> };
+    if (typeof body.detail === "string") {
+      return body.detail;
+    }
+    if (Array.isArray(body.detail)) {
+      const msgs = body.detail.map((d) => d.msg).filter(Boolean);
+      if (msgs.length > 0) return msgs.join("；");
+    }
+    return resp.statusText;
   } catch {
     return resp.statusText;
   }
