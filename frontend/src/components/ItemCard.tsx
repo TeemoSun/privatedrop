@@ -6,6 +6,7 @@ import { formatDateTime, fromNow } from "../lib/format";
 import type { Item } from "../lib/types";
 import { cn, formatBytes } from "../lib/utils";
 import { Button } from "./ui/Button";
+import { ExpandableText } from "./ui/ExpandableText";
 
 interface ItemCardProps {
   item: Item;
@@ -109,9 +110,7 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
       </div>
 
       {item.note && (
-        <p className="mb-2 whitespace-pre-wrap break-words break-all text-sm leading-relaxed">
-          {item.note}
-        </p>
+        <ExpandableText text={item.note} className="mb-2" />
       )}
 
       {item.kind === "file" && (

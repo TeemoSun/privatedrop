@@ -23,6 +23,7 @@ import { api, clearTokens, getDeviceId, getDeviceName, setDeviceName } from "../
 import { getSendOnEnter, setSendOnEnter } from "../lib/settings";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
+import { ExpandableText } from "../components/ui/ExpandableText";
 import { EmptyState, Spinner } from "../components/ui/Misc";
 import { formatBytes, cn } from "../lib/utils";
 import { formatDateTime, fromNow } from "../lib/format";
@@ -494,15 +495,17 @@ function TrashSubPage() {
                 </div>
 
                 {item.kind === "note" ? (
-                  <p className="whitespace-pre-wrap break-words text-sm text-foreground/90 leading-relaxed font-sans">
-                    {item.note}
-                  </p>
+                  <ExpandableText
+                    text={item.note || ""}
+                    textClassName="text-foreground/90 leading-relaxed font-sans"
+                  />
                 ) : (
                   <div className="space-y-2">
                     {item.note && (
-                      <p className="whitespace-pre-wrap break-words text-sm text-foreground/90 font-sans">
-                        {item.note}
-                      </p>
+                      <ExpandableText
+                        text={item.note}
+                        textClassName="text-foreground/90 font-sans"
+                      />
                     )}
                     <div className="space-y-1.5">
                       {item.files.map((file) => (
