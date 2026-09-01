@@ -116,6 +116,20 @@ async def save_upload_stream(
         raise
 
 
+def _cleanup_empty_parents(full_path: Path) -> None:
+    parent = full_path.parent
+    root = files_dir()
+    while parent != root and parent.is_relative_to(root):
+        try:
+            if not any(parent.iterdir()):
+                parent.rmdir()
+                parent = parent.parent
+            else:
+                break
+        except Exception:
+            break
+
+
 async def delete_file_if_unreferenced(sha256: str, session: AsyncSession) -> bool:
     from app.models import DropFile
 
@@ -127,6 +141,7 @@ async def delete_file_if_unreferenced(sha256: str, session: AsyncSession) -> boo
         path = get_file_path(sha256)
         if path.is_file():
             path.unlink(missing_ok=True)
+            _cleanup_empty_parents(path)
             logger.info("Deleted physical file %s", path)
             return True
     return False
@@ -174,17 +189,7 @@ def remove_orphan_file(full_path: Path) -> bool:
     try:
         if full_path.is_file():
             full_path.unlink(missing_ok=True)
-            parent = full_path.parent
-            root = files_dir()
-            while parent != root and parent.is_relative_to(root):
-                try:
-                    if not any(parent.iterdir()):
-                        parent.rmdir()
-                        parent = parent.parent
-                    else:
-                        break
-                except Exception:
-                    break
+            _cleanup_empty_parents(full_path)
             return True
     except Exception as e:
         logger.warning("Failed to remove orphan file %s: %s", full_path, e)
