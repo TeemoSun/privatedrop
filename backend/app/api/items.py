@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from app import storage
 from app.api.deps import get_auth_optional, get_session, require_auth
 from app.config import settings
-from app.models import DropFile, DropItem
+from app.models import Device, DropFile, DropItem
 from app.schemas import (
     DownloadUrlResponse,
     FileOut,
@@ -144,6 +144,10 @@ async def create_item(
     auth: tuple = Depends(require_auth),
 ) -> ItemCreateResponse:
     device_id = auth[0]
+    device = await session.get(Device, device_id)
+    if device is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="device not found or unlinked")
+
     now = utc_now()
     expires_at = now + timedelta(hours=24) if body.is_ephemeral else None
 
@@ -185,6 +189,7 @@ async def create_item(
     await session.flush()
 
     targets: list[FileUploadTarget] = []
+    created_drop_files: list[tuple[DropFile, str]] = []
     all_files_exist = True
     for spec in body.files:
         exists = storage.file_exists(spec.sha256)
@@ -202,6 +207,7 @@ async def create_item(
         )
         session.add(drop_file)
         await session.flush()
+        created_drop_files.append((drop_file, spec.sha256.lower()))
 
         upload_url = (
             ""
@@ -215,6 +221,17 @@ async def create_item(
                 already_exists=exists,
             )
         )
+
+    # Double-check physical file existence right before commit to avoid TOCTOU races with concurrent purge
+    for idx, (df, sha) in enumerate(created_drop_files):
+        if df.uploaded_at is not None and not storage.file_exists(sha):
+            df.uploaded_at = None
+            targets[idx] = FileUploadTarget(
+                file_id=df.id,
+                upload_url=f"/api/items/{item.id}/files/{df.id}/upload",
+                already_exists=False,
+            )
+            all_files_exist = False
 
     await session.commit()
 
