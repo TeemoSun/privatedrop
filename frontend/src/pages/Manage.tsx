@@ -9,18 +9,22 @@ import {
   Database,
   File as FileIcon,
   HardDrive,
+  Laptop,
   LogOut,
+  Moon,
   Pencil,
   RefreshCw,
   RotateCcw,
   Smartphone,
+  Sun,
+  SunMoon,
   Trash2,
   Wrench,
 } from "lucide-react";
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
 
 import { api, clearTokens, getDeviceId, getDeviceName, setDeviceName } from "../lib/api";
-import { getSendOnEnter, setSendOnEnter } from "../lib/settings";
+import { getSendOnEnter, getTheme, setSendOnEnter, setTheme, type Theme } from "../lib/settings";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 import { ExpandableText } from "../components/ui/ExpandableText";
@@ -67,6 +71,12 @@ function ManageMenu() {
   });
 
   const [sendOnEnter, setSendOnEnterState] = useState(() => getSendOnEnter());
+  const [theme, setThemeState] = useState<Theme>(() => getTheme());
+
+  const handleThemeChange = (newTheme: Theme) => {
+    setThemeState(newTheme);
+    setTheme(newTheme);
+  };
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-6">
@@ -156,9 +166,66 @@ function ManageMenu() {
 
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase px-1">
-          输入与交互偏好
+          外观与偏好
         </span>
         <Card className="divide-y overflow-hidden border shadow-sm">
+          {/* 主题外观切换 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                <SunMoon className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-medium text-sm">主题外观</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  支持浅色、深色模式与跟随系统自动切换
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center rounded-lg border bg-muted/60 p-1 gap-1 self-start sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => handleThemeChange("light")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all select-none cursor-pointer",
+                  theme === "light"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Sun className="h-3.5 w-3.5" />
+                <span>浅色</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleThemeChange("dark")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all select-none cursor-pointer",
+                  theme === "dark"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Moon className="h-3.5 w-3.5" />
+                <span>深色</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleThemeChange("system")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all select-none cursor-pointer",
+                  theme === "system"
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Laptop className="h-3.5 w-3.5" />
+                <span>跟随系统</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 按 Enter 发送 */}
           <div className="flex items-center justify-between p-4 gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
