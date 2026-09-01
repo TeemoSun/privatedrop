@@ -9,6 +9,7 @@ from app import storage
 from app.config import settings
 from app.db import SessionLocal
 from app.models import DropItem
+from app.security import cleanup_revoked_jtis
 from app.ws import manager
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,9 @@ async def cleanup_job() -> None:
         removed_temp = storage.cleanup_temp_files(max_age_seconds=int(DRAFT_STALE_AFTER.total_seconds()))
         if removed_temp:
             logger.info("cleanup: removed %d stale temp files", removed_temp)
+        removed_jtis = cleanup_revoked_jtis(max_age_seconds=900)
+        if removed_jtis:
+            logger.info("cleanup: removed %d expired revoked jtis", removed_jtis)
     except Exception:
         logger.exception("cleanup job failed")
 
