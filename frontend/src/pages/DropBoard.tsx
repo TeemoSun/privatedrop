@@ -111,7 +111,6 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
   const cursorRef = useRef<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [reloadTick, setReloadTick] = useState(0);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
@@ -215,7 +214,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
     return () => {
       cancelled = true;
     };
-  }, [reloadTick, scrollToBottom, isEphemeral, isSecret]);
+  }, [scrollToBottom, isEphemeral, isSecret]);
 
   // Load older messages (at top)
   const loadOlder = useCallback(async () => {
