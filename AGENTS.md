@@ -1,7 +1,7 @@
 # AGENTS.md
 
 自托管 Edge Drop 替代品（PrivateDrop）：React 前端 + FastAPI 后端 + PostgreSQL 16 + 本地哈希文件管理，单应用容器 Docker 部署。
-设计文档见 `docs/DESIGN.md`，发布流程见 `docs/Docker镜像打包上传.md` 与 `docs/GitHub推送流程.md`。
+设计文档见 `docs/DESIGN.md`，设备型号更新见 `docs/设备型号映射更新指南.md`，发布流程见 `docs/Docker镜像打包上传.md` 与 `docs/GitHub推送流程.md`。
 
 ## 页面与路由架构
 

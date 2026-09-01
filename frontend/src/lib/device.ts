@@ -94,6 +94,23 @@ export function detectDeviceNameSync(): string {
   return parseUserAgent(navigator.userAgent || "");
 }
 
+export async function resolveAndroidModelName(rawModel: string): Promise<string> {
+  const model = rawModel.trim();
+  if (!model || model === "K" || model === "Mobile") {
+    return "Android 设备";
+  }
+  try {
+    const { default: modelMap } = await import("./android-models.json");
+    const mapped = (modelMap as Record<string, string>)[model];
+    if (mapped) {
+      return mapped;
+    }
+  } catch {
+    // Fallback if dynamic import fails
+  }
+  return `Android (${model})`;
+}
+
 export async function detectDeviceNameAsync(): Promise<string> {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
     return "未知设备";
@@ -114,7 +131,7 @@ export async function detectDeviceNameAsync(): Promise<string> {
 
       if (platform === "Android") {
         if (model && model !== "K" && model !== "Mobile") {
-          return `Android (${model})`;
+          return await resolveAndroidModelName(model);
         }
         return "Android 设备";
       }
@@ -126,7 +143,9 @@ export async function detectDeviceNameAsync(): Promise<string> {
       }
       if (platform === "Linux") {
         if (navigator.userAgentData.mobile) {
-          if (model && model !== "K") return `Android (${model})`;
+          if (model && model !== "K" && model !== "Mobile") {
+            return await resolveAndroidModelName(model);
+          }
           return "Android 设备";
         }
         return "Linux PC";
@@ -136,6 +155,18 @@ export async function detectDeviceNameAsync(): Promise<string> {
       }
     } catch {
       // Fallback to sync detection
+    }
+  }
+
+  // Fallback: Check if UA string contains an Android model
+  const ua = navigator.userAgent || "";
+  if (/Android/i.test(ua)) {
+    const match = ua.match(/Android\s+[\d.]+;\s*([^;)]+?)(?:\s+Build|[;)])/i);
+    if (match && match[1]) {
+      const rawModel = match[1].trim();
+      if (rawModel && rawModel !== "K" && rawModel !== "Mobile") {
+        return await resolveAndroidModelName(rawModel);
+      }
     }
   }
 
