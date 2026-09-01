@@ -496,7 +496,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
         {error && <p className="mb-1.5 px-2 text-xs text-destructive">{error}</p>}
 
         {/* 紧凑型输入条 */}
-        <div className="flex items-end gap-2">
+        <div className="flex w-full items-end gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -510,7 +510,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
           />
 
           {/* 窄型胶囊输入框（内嵌发送箭头） */}
-          <div className="relative flex min-h-[42px] flex-1 items-end rounded-2xl border border-input bg-card shadow-xs transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20">
+          <div className="relative flex min-w-0 min-h-[42px] flex-1 items-end rounded-2xl border border-input bg-card shadow-xs transition-colors focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
             <textarea
               ref={textareaRef}
               rows={1}
@@ -531,7 +531,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                   void handleSend();
                 }
               }}
-              className="max-h-32 min-h-[38px] flex-1 resize-none bg-transparent py-2.5 pl-3.5 pr-2 text-sm leading-relaxed placeholder:text-muted-foreground focus:outline-none"
+              className="min-w-0 max-h-32 min-h-[38px] flex-1 resize-none bg-transparent py-2.5 pl-3.5 pr-2 text-sm leading-relaxed placeholder:text-muted-foreground focus:outline-none"
             />
             <button
               type="button"
@@ -540,13 +540,13 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
               className={cn(
                 "my-1.5 mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer",
                 note.trim() || files.length > 0
-                  ? "text-blue-600 hover:text-blue-700 active:scale-95 dark:text-blue-400"
+                  ? "text-primary hover:text-primary/80 active:scale-95"
                   : "text-muted-foreground/30 cursor-not-allowed",
               )}
               title="发送"
             >
               {submitting ? (
-                <Spinner className="h-4 w-4 text-blue-600" />
+                <Spinner className="h-4 w-4 text-primary" />
               ) : (
                 <SendHorizontal className="h-5 w-5" />
               )}
@@ -558,10 +558,10 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
             type="button"
             disabled={submitting}
             onClick={() => fileInputRef.current?.click()}
-            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-xs transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition-all hover:bg-accent hover:text-foreground active:scale-95 disabled:opacity-50 cursor-pointer"
             title="添加文件"
           >
-            <Plus className="h-5 w-5 stroke-[2.5]" />
+            <Plus className="h-5 w-5" />
           </button>
         </div>
       </div>
