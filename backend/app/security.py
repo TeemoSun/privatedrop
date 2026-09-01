@@ -14,7 +14,7 @@ LOGIN_WINDOW = timedelta(seconds=60)
 LOGIN_MAX_ATTEMPTS = 5
 _MAX_IPS = 10_000
 
-_revoked_jtis: set[str] = set()
+_revoked_jtis: dict[str, datetime] = {}
 
 
 def hash_password(password: str) -> str:
@@ -41,7 +41,8 @@ def check_login_rate(ip: str) -> bool:
         return False
     if len(_login_attempts) >= _MAX_IPS and ip not in _login_attempts:
         for key in list(_login_attempts.keys()):
-            if now - _login_attempts[key][-1] > LOGIN_WINDOW:
+            queue_k = _login_attempts[key]
+            if not queue_k or (now - queue_k[-1] > LOGIN_WINDOW):
                 del _login_attempts[key]
             if len(_login_attempts) < _MAX_IPS:
                 break
@@ -104,5 +105,16 @@ def decode_refresh_token(token: str) -> tuple[uuid.UUID, uuid.UUID]:
     return uuid.UUID(payload["sub"]), uuid.UUID(payload["jti"])
 
 
-def revoke_access_tokens(*jti: str) -> None:
-    _revoked_jtis.update(jti)
+def revoke_access_tokens(*jtis: str) -> None:
+    now = utc_now()
+    for jti in jtis:
+        _revoked_jtis[jti] = now
+
+
+def cleanup_revoked_jtis(max_age_seconds: int = 900) -> int:
+    now = utc_now()
+    cutoff = timedelta(seconds=max_age_seconds)
+    expired = [jti for jti, revoked_at in _revoked_jtis.items() if now - revoked_at > cutoff]
+    for jti in expired:
+        _revoked_jtis.pop(jti, None)
+    return len(expired)
