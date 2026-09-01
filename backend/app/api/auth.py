@@ -1,3 +1,4 @@
+import ipaddress
 import uuid
 from datetime import datetime, timezone
 
@@ -6,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session, require_auth
+from app.config import settings
 from app.models import Device
 from app.schemas import LoginRequest, RefreshRequest, TokenResponse
 from app import security as security_module
@@ -22,11 +24,33 @@ from app.security import (
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _is_trusted_proxy(ip_str: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        for trusted in settings.trusted_proxy_list:
+            if ip in ipaddress.ip_network(trusted, strict=False):
+                return True
+    except ValueError:
+        pass
+    return False
+
+
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    peer_ip = request.client.host if request.client else "unknown"
+    if peer_ip == "unknown":
+        return peer_ip
+
+    if _is_trusted_proxy(peer_ip):
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            candidate = forwarded.split(",")[0].strip()
+            if candidate:
+                return candidate
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip and real_ip.strip():
+            return real_ip.strip()
+
+    return peer_ip
 
 
 @router.post("/login", response_model=TokenResponse)
