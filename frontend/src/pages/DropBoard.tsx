@@ -323,15 +323,14 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
           return;
         }
 
-        await api.uploadComplete(created.item_id);
+        const itemOut = await api.uploadComplete(created.item_id);
+        setList((prev) => [...prev.filter((i) => i.id !== itemOut.id), itemOut]);
         setFiles([]);
         setNote("");
-        setReloadTick((t) => t + 1);
         setTimeout(() => scrollToBottom("smooth"), 100);
       } else if (trimmedNote) {
         await api.createNote(trimmedNote, isEphemeral, isSecret);
         setNote("");
-        setReloadTick((t) => t + 1);
         setTimeout(() => scrollToBottom("smooth"), 100);
       }
     } catch (e) {
