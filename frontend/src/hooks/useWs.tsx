@@ -13,8 +13,8 @@ interface WsContextType {
 const WsContext = createContext<WsContextType | null>(null);
 
 const MAX_RETRY_DELAY = 30_000;
-const PING_INTERVAL = 5_000; // 每 5 秒发送一次心跳
-const PONG_TIMEOUT = 3_000; // 3 秒内未收到 pong 则判定断开
+const PING_INTERVAL = 1_000; // 每 1 秒发送一次心跳
+const PONG_TIMEOUT = 5_000; // 5 秒内未收到任何响应则判定断开
 
 export function WsProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
@@ -25,36 +25,36 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
   const retryDelayRef = useRef(1_000);
   const closedRef = useRef(false);
   const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pongTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastReceivedAtRef = useRef<number>(Date.now());
 
   const stopHeartbeat = useCallback(() => {
     if (pingTimerRef.current) {
       clearInterval(pingTimerRef.current);
       pingTimerRef.current = null;
     }
-    if (pongTimeoutRef.current) {
-      clearTimeout(pongTimeoutRef.current);
-      pongTimeoutRef.current = null;
-    }
   }, []);
 
   const startHeartbeat = useCallback(() => {
     stopHeartbeat();
+    lastReceivedAtRef.current = Date.now();
     pingTimerRef.current = setInterval(() => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const now = Date.now();
+        if (now - lastReceivedAtRef.current >= PONG_TIMEOUT) {
+          // 超过 5 秒未收到任何服务端响应，判定断开
+          stopHeartbeat();
+          setConnected(false);
+          setConnecting(false);
+          try {
+            wsRef.current?.close();
+          } catch {}
+          return;
+        }
+
         try {
           wsRef.current.send("ping");
-          if (!pongTimeoutRef.current) {
-            pongTimeoutRef.current = setTimeout(() => {
-              // 3 秒内未收到响应，判定连接中断
-              setConnected(false);
-              setConnecting(false);
-              try {
-                wsRef.current?.close();
-              } catch {}
-            }, PONG_TIMEOUT);
-          }
         } catch {
+          stopHeartbeat();
           setConnected(false);
           setConnecting(false);
           try {
@@ -109,10 +109,7 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
       };
 
       ws.onmessage = (msg) => {
-        if (pongTimeoutRef.current) {
-          clearTimeout(pongTimeoutRef.current);
-          pongTimeoutRef.current = null;
-        }
+        lastReceivedAtRef.current = Date.now();
         if (msg.data === "pong") {
           return;
         }
@@ -226,9 +223,19 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
         if (!connected && !connecting) {
           reconnect();
         } else if (connected && wsRef.current?.readyState === WebSocket.OPEN) {
-          try {
-            wsRef.current.send("ping");
-          } catch {}
+          if (Date.now() - lastReceivedAtRef.current >= PONG_TIMEOUT) {
+            stopHeartbeat();
+            setConnected(false);
+            setConnecting(false);
+            try {
+              wsRef.current?.close();
+            } catch {}
+            reconnect();
+          } else {
+            try {
+              wsRef.current.send("ping");
+            } catch {}
+          }
         }
       }
     };
