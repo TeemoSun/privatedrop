@@ -1,9 +1,8 @@
 import { useCallback, useRef } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Lock, LogOut, RefreshCw, Settings, WifiOff, Zap } from "lucide-react";
+import { LayoutDashboard, Lock, LogOut, Settings, Zap } from "lucide-react";
 
 import { Button } from "./ui/Button";
-import { useWsStatus } from "../hooks/useWs";
 import { api, clearTokens, getDeviceName } from "../lib/api";
 import { unlockSecretSession } from "../lib/secretSession";
 import { cn } from "../lib/utils";
@@ -132,7 +131,6 @@ export function AppShell() {
   const location = useLocation();
   const isSecret = location.pathname === "/secret";
   const timelineLongPress = useTimelineLongPress();
-  const { connected, connecting, reconnect } = useWsStatus();
 
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-background">
@@ -156,20 +154,6 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {!connected && (
-          <div className="shrink-0 flex items-center justify-center bg-rose-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm z-30 transition-colors animate-in fade-in slide-in-from-top-1">
-            <button
-              onClick={reconnect}
-              disabled={connecting}
-              className="inline-flex items-center gap-1.5 rounded-full bg-rose-700/80 hover:bg-rose-700 active:bg-rose-800 px-3 py-0.5 text-xs font-semibold text-white transition-colors focus:outline-none focus:ring-1 focus:ring-white/40"
-              title="WebSocket 连接已断开，点击立即重连"
-            >
-              <WifiOff className="h-3.5 w-3.5 shrink-0" />
-              <span>实时连接已断开 · 点击重连</span>
-              {connecting && <RefreshCw className="h-3 w-3 shrink-0 animate-spin ml-0.5" />}
-            </button>
-          </div>
-        )}
 
         <header className="shrink-0 flex items-center justify-between border-b bg-card px-4 py-2.5 md:hidden">
           <div className="flex items-center gap-2">

@@ -16,7 +16,7 @@ const MAX_RETRY_DELAY = 30_000;
 
 export function WsProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting, setConnecting] = useState(() => !!getAccessToken());
   const listenersRef = useRef<Set<(event: WsEvent) => void>>(new Set());
   const wsRef = useRef<WebSocket | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,27 +79,35 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
 
       ws.onclose = async (ev) => {
         setConnected(false);
-        setConnecting(false);
-        if (closedRef.current) return;
-
-        if (ev.code === 4401) {
-          const fresh = await refreshAccessToken();
-          if (!fresh) {
-            closedRef.current = true;
-            return;
-          }
+        if (closedRef.current) {
+          setConnecting(false);
+          return;
         }
 
-        const delay = retryDelayRef.current;
+        if (ev.code === 4401) {
+          setConnecting(true);
+          const fresh = await refreshAccessToken();
+          if (closedRef.current) return;
+          if (!fresh) {
+            closedRef.current = true;
+            setConnecting(false);
+            return;
+          }
+          retryDelayRef.current = 1_000;
+          connect();
+          return;
+        }
+
+        setConnecting(false);
+        const jitter = Math.floor(Math.random() * 500);
+        const delay = Math.min(retryDelayRef.current + jitter, MAX_RETRY_DELAY);
         retryTimerRef.current = setTimeout(() => {
           connect();
         }, delay);
-        retryDelayRef.current = Math.min(delay * 2, MAX_RETRY_DELAY);
+        retryDelayRef.current = Math.min(retryDelayRef.current * 2, MAX_RETRY_DELAY);
       };
 
       ws.onerror = () => {
-        setConnected(false);
-        setConnecting(false);
         try {
           ws.close();
         } catch {}
@@ -111,6 +119,10 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const reconnect = useCallback(() => {
+    if (retryTimerRef.current) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
     retryDelayRef.current = 1_000;
     connect();
   }, [connect]);
@@ -135,6 +147,25 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [connect]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      if (!connected && !connecting) {
+        reconnect();
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && !connected && !connecting) {
+        reconnect();
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [connected, connecting, reconnect]);
 
   return (
     <WsContext.Provider value={{ connected, connecting, reconnect, subscribe }}>

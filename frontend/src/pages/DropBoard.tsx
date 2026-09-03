@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { File as FileIcon, FileUp, Inbox, Lock, Plus, SendHorizontal, X } from "lucide-react";
+import {
+  File as FileIcon,
+  FileUp,
+  Inbox,
+  Lock,
+  Plus,
+  RefreshCw,
+  SendHorizontal,
+  WifiOff,
+  X,
+} from "lucide-react";
 
 import { api, getAccessToken } from "../lib/api";
 import { isSecretUnlocked, lockSecretSession } from "../lib/secretSession";
@@ -8,7 +18,7 @@ import { getSendOnEnter } from "../lib/settings";
 import { ItemCard } from "../components/ItemCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState, Spinner } from "../components/ui/Misc";
-import { useWs } from "../hooks/useWs";
+import { useWs, useWsStatus } from "../hooks/useWs";
 import type { Item } from "../lib/types";
 import { cn, formatBytes, sha256Hex } from "../lib/utils";
 
@@ -289,6 +299,8 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
     }
   }, [hasMore, loadingMore, loadOlder]);
 
+  const { connected, connecting, reconnect } = useWsStatus();
+
   // Real-time synchronization
   useWs({
     onEvent: (event) => {
@@ -305,6 +317,8 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       }
     },
   });
+
+  const hasContent = Boolean(note.trim() || files.length > 0);
 
   const handleSend = async () => {
     if (submitting) return;
@@ -379,6 +393,24 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSendClick = () => {
+    if (submitting) return;
+
+    if (!connected) {
+      if (!connecting) {
+        reconnect();
+      }
+      if (hasContent) {
+        void handleSend();
+      }
+      return;
+    }
+
+    if (hasContent) {
+      void handleSend();
     }
   };
 
@@ -541,6 +573,32 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
 
         {error && <p className="mb-1.5 px-2 text-xs text-destructive">{error}</p>}
 
+        {/* 正在连接 / 连接断开 状态提示（连接正常时完全隐去） */}
+        {!connected && (
+          <div className="mb-1.5 flex items-center justify-between px-2 text-xs animate-in fade-in slide-in-from-bottom-1">
+            {connecting ? (
+              <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium select-none">
+                <RefreshCw className="h-3 w-3 animate-spin shrink-0" />
+                正在连接实时服务…
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium select-none">
+                <WifiOff className="h-3 w-3 shrink-0" />
+                实时连接已断开 · 点击发送键可重连
+              </span>
+            )}
+            {!connecting && (
+              <button
+                type="button"
+                onClick={reconnect}
+                className="text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline font-medium cursor-pointer"
+              >
+                立即重连
+              </button>
+            )}
+          </div>
+        )}
+
         {/* 紧凑型输入条 */}
         <div className="flex w-full items-end gap-2">
           <input
@@ -574,6 +632,9 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                     return;
                   }
                   e.preventDefault();
+                  if (!connected && !connecting) {
+                    reconnect();
+                  }
                   void handleSend();
                 }
               }}
@@ -581,20 +642,40 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
             />
             <button
               type="button"
-              onClick={handleSend}
-              disabled={submitting || (!note.trim() && files.length === 0)}
+              onClick={handleSendClick}
+              disabled={submitting || (connected && !hasContent)}
               className={cn(
                 "my-1.5 mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer",
-                note.trim() || files.length > 0
-                  ? "text-primary hover:text-primary/80 active:scale-95"
-                  : "text-muted-foreground/30 cursor-not-allowed",
+                !connected
+                  ? connecting
+                    ? "bg-amber-500 text-white hover:bg-amber-600 active:scale-95 shadow-xs"
+                    : "bg-rose-500 text-white hover:bg-rose-600 active:scale-95 shadow-xs"
+                  : hasContent
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 shadow-xs"
+                    : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-default",
               )}
-              title="发送"
+              title={
+                !connected
+                  ? connecting
+                    ? hasContent
+                      ? "实时连接中 · 点击发送"
+                      : "实时连接中…"
+                    : hasContent
+                      ? "实时连接已断开 · 发送并重连"
+                      : "实时连接已断开 · 点击重连"
+                  : "发送"
+              }
             >
               {submitting ? (
-                <Spinner className="h-4 w-4 text-primary" />
+                <Spinner className="h-4 w-4 text-white" />
+              ) : !connected && !hasContent ? (
+                connecting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <WifiOff className="h-4 w-4" />
+                )
               ) : (
-                <SendHorizontal className="h-5 w-5" />
+                <SendHorizontal className="h-4 w-4" />
               )}
             </button>
           </div>
