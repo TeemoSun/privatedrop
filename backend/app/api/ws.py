@@ -14,6 +14,10 @@ async def websocket_endpoint(
     try:
         device_id = decode_access_token(token)
     except (jwt.InvalidTokenError, ValueError, KeyError) as exc:
+        # 必须先 accept 再 close：未 accept 直接 close 会被 uvicorn 以 HTTP 403
+        # 拒绝握手，浏览器只能触发 onclose(1006)，拿不到 4401 关闭码，
+        # 前端也就无法走"刷新 token 后重连"的分支
+        await websocket.accept()
         await websocket.close(code=4401, reason="invalid token")
         return
     await manager.connect(websocket, device_id)

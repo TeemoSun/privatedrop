@@ -383,7 +383,12 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
         setNote("");
         setTimeout(() => scrollToBottom("smooth"), 100);
       } else if (trimmedNote) {
-        await api.createNote(trimmedNote, isEphemeral, isSecret);
+        const created = await api.createNote(trimmedNote, isEphemeral, isSecret);
+        // 本地立即插入（WS 断开时收不到 item_created 广播；连接正常时靠 id 去重）
+        if (created.item) {
+          const item = created.item;
+          setList((prev) => [...prev.filter((i) => i.id !== item.id), item]);
+        }
         setNote("");
         setTimeout(() => scrollToBottom("smooth"), 100);
       }

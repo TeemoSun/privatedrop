@@ -47,6 +47,8 @@ export interface UploadTarget {
 export interface ItemCreateResponse {
   item_id: string;
   files: UploadTarget[];
+  /** note 类型创建时服务端直接带回完整条目，WS 断开时也可本地插入列表 */
+  item?: Item;
 }
 
 export interface DownloadUrlResponse {

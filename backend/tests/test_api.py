@@ -116,6 +116,9 @@ async def test_notes_flow(client: AsyncClient) -> None:
     )
     assert resp.status_code == 201, resp.text
     item_id = resp.json()["item_id"]
+    # 创建响应需带回完整条目，前端在 WS 断开时也能本地插入列表
+    assert resp.json()["item"]["id"] == item_id
+    assert resp.json()["item"]["note"] == "hello world"
 
     resp = await client.get("/api/items?limit=10", headers=headers)
     assert resp.status_code == 200
@@ -808,6 +811,34 @@ async def test_storage_check_and_fix(client: AsyncClient) -> None:
     assert data_after["total_disk_files"] == 0
     assert data_after["missing_files"] == []
     assert data_after["orphan_files"] == []
+
+
+def test_ws_invalid_token_closes_with_4401() -> None:
+    # 回归：未 accept 直接 close(4401) 会被 uvicorn 以 HTTP 403 拒绝握手，
+    # 浏览器只能收到 onclose(1006)，前端无法触发"刷新 token 后重连"
+    from fastapi.testclient import TestClient
+    from starlette.websockets import WebSocketDisconnect
+
+    from app.main import app
+
+    sync_client = TestClient(app)
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with sync_client.websocket_connect("/api/ws?token=invalid-token") as ws:
+            ws.receive_text()
+    assert exc_info.value.code == 4401
+
+
+def test_ws_ping_pong() -> None:
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    from app.security import create_access_token
+
+    sync_client = TestClient(app)
+    token = create_access_token(uuid.uuid4())
+    with sync_client.websocket_connect(f"/api/ws?token={token}") as ws:
+        ws.send_text("ping")
+        assert ws.receive_text() == "pong"
 
 
 

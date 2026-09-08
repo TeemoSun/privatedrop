@@ -54,11 +54,6 @@ class FileUploadTarget(BaseModel):
     already_exists: bool = False
 
 
-class ItemCreateResponse(BaseModel):
-    item_id: uuid.UUID
-    files: list[FileUploadTarget]
-
-
 class FileOut(BaseModel):
     id: uuid.UUID
     file_name: str
@@ -83,6 +78,13 @@ class ItemOut(BaseModel):
     files: list[FileOut]
 
     model_config = {"from_attributes": True}
+
+
+class ItemCreateResponse(BaseModel):
+    item_id: uuid.UUID
+    files: list[FileUploadTarget]
+    # note 类型创建时直接带回完整条目，前端在 WS 断开时也能本地插入列表
+    item: ItemOut | None = None
 
 
 class ItemList(BaseModel):

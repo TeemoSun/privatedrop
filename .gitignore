@@ -34,3 +34,6 @@ data/
 
 # Kilo
 .kilo/
+
+# Mimosa 安全扫描本地产物
+.mimosa/

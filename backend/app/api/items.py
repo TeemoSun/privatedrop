@@ -166,7 +166,7 @@ async def create_item(
         await session.commit()
         item_out = await _fetch_item_out(session, item.id)
         await manager.broadcast({"type": "item_created", "item": item_out.model_dump(mode="json")})
-        return ItemCreateResponse(item_id=item.id, files=[])
+        return ItemCreateResponse(item_id=item.id, files=[], item=item_out)
 
     if not body.files:
         raise HTTPException(status_code=422, detail="file items require at least one file")
