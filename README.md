@@ -3,9 +3,9 @@
 自托管 Edge Drop 替代品。把多台设备关联到同一份数据空间，在任意设备拖入文件或写一条笔记，其他设备即时可见、可下载。单密码登录，文件本地哈希存储管理，数据完全自控。
 
 - 前端：React 18 + Vite 5 + TypeScript + Tailwind 3（shadcn 风格自写组件，TanStack Query）
-- 后端：FastAPI + SQLAlchemy 2（async）+ PostgreSQL 16（Alembic 迁移）
+- 后端：Go 1.23 + Chi 路由 + PostgreSQL 16（纯净静态编译，超低内存开销 ~11MB）
 - 文件存储：本地内容寻址存储（CAS），按 SHA-256 分片存储，天然去重秒传，零拷贝断点续传下载
-- 实时同步：WebSocket 进程内广播，断线重连后游标增量拉取兜底
+- 实时同步：WebSocket 进程内广播（Hub + Client Pump），断线重连后游标增量拉取兜底
 - 部署：单应用容器 + PostgreSQL，Docker Compose 一键启动
 
 详细设计见 [docs/DESIGN.md](docs/DESIGN.md)。
@@ -28,13 +28,14 @@
 privatedrop/
 ├── compose.yaml          # 生产（PRD）部署：app + db
 ├── compose.dev.yaml      # 开发（DEV）部署：app + db（带端口映射/默认值）
-├── Dockerfile            # 多阶段：前端构建产物直接打进镜像
+├── Dockerfile            # 多阶段：前端构建产物 + Go 静态编译打进 Alpine 镜像
 ├── .env.example          # 环境变量示例
 ├── docs/                 # 设计文档与发布流程
 ├── scripts/docker-push.sh
-├── backend/              # FastAPI 后端（uv 管理依赖）
-│   ├── alembic/          # 数据库迁移
-│   └── app/              # 应用代码（api/ config/ security/ storage/ ws/ cleanup…）
+├── backend/              # Go 后端
+│   ├── cmd/server/       # 程序入口（main.go，含启动校验与健康检查）
+│   ├── internal/         # 内部包（api/ config/ database/ models/ security/ storage/ worker/ ws）
+│   └── tests/            # 自动化集成测试套件
 └── frontend/             # React 前端（npm 管理）
     └── src/              # 页面 / 组件 / lib（api、类型、工具）
 ```
@@ -87,11 +88,10 @@ docker compose up -d --build   # 或重建镜像后 docker compose up -d
 # 1. 启动依赖（PostgreSQL，带宿主端口映射 5432，供本地后端连接）
 docker compose -f compose.dev.yaml up -d db
 
-# 2. 后端（backend/ 目录下执行，配置读取根目录 .env）
+# 2. 后端（backend/ 目录下执行，配置自动向上查找根目录 .env）
 cd backend
-uv sync --extra dev
-# 编辑根目录 .env（参考 .env.example 注释，指向 localhost 的 db）
-uv run uvicorn app.main:app --reload --port 8000
+# 首次或依赖变动时执行 go mod tidy
+go run ./cmd/server                      # 启动服务在 :8000
 
 # 3. 前端（另开终端）
 cd frontend
@@ -101,19 +101,19 @@ npm run dev        # http://localhost:5173，/api 与 /api/ws 代理到 127.0.0.
 
 > 登录密码默认 `dev-password`（见 compose.dev.yaml）。
 > DEV 数据存放在 `./data/dev/`，与 PRD 隔离。
-> 也可以直接 `docker compose -f compose.dev.yaml up -d --build` 全量起容器（镜像内 uvicorn 不带 --reload，改后端代码需重建）。
+> 也可以直接 `docker compose -f compose.dev.yaml up -d --build` 全量起容器。
 
 ### 配置校验
 
-启动时校验以下项，不满足直接拒绝启动（`app/main.py: validate_secrets`）：
+启动时校验以下项，不满足直接拒绝启动（`cmd/server/main.go: validateSecrets`）：
 
 - `APP_PASSWORD` / `JWT_SECRET` 非空且不是占位值（`admin`/`change-me`/`changeme`/`password`/`secret`）
 
 ## 测试
 
 ```bash
-# 后端单元测试（backend/ 下，sqlite 内存库 + 本地临时存储，无需外部服务）
-cd backend && uv run pytest
+# 后端自动化测试（backend/ 下，使用本地 PostgreSQL dev 容器，覆盖全流程）
+cd backend && go test -v -count=1 ./...
 
 # 前端类型检查 + 构建（tsc 严格模式）
 cd frontend && npm run build

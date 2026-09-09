@@ -1,6 +1,6 @@
 # AGENTS.md
 
-自托管 Edge Drop 替代品（PrivateDrop）：React 前端 + FastAPI 后端 + PostgreSQL 16 + 本地哈希文件管理，单应用容器 Docker 部署。
+自托管 Edge Drop 替代品（PrivateDrop）：React 前端 + Go 后端 + PostgreSQL 16 + 本地哈希文件管理，单应用容器 Docker 部署。
 设计文档见 `docs/DESIGN.md`，设备型号更新见 `docs/设备型号映射更新指南.md`，发布流程见 `docs/Docker镜像打包上传.md` 与 `docs/GitHub推送流程.md`。
 
 ## 页面与路由架构
@@ -26,11 +26,9 @@
 ## 本地开发
 
 ```bash
-# 环境准备：后端用 uv（Python >=3.12，命令必须在 backend/ 下执行，配置读取根目录 .env）
+# 环境准备：后端用 Go（>=1.23，命令在 backend/ 下执行，配置自动向上查找根目录 .env）
 cd backend
-uv sync                                  # 改 pyproject.toml 后执行，同步 uv.lock
-uv sync --extra dev                        # 测试依赖（pytest/httpx/aiosqlite）
-uv run uvicorn app.main:app --reload --port 8000
+go run ./cmd/server                      # 启动后端（端口 8000）
 
 # 联调依赖（PostgreSQL，带宿主端口映射；默认密码见 compose.dev.yaml）
 docker compose -f compose.dev.yaml up -d db
@@ -40,25 +38,21 @@ npm install                              # 改 package.json 后执行，同步 p
 npm run dev                              # http://localhost:5173，/api 与 /api/ws 代理到 127.0.0.1:8000
 ```
 
-- 后端配置读根目录 `.env`（gitignored，由 `backend/app/config.py` 定位到仓库根），参考 `.env.example`。
-- 也可 `docker compose -f compose.dev.yaml up -d --build` 全量起容器，但镜像内 uvicorn 无 `--reload`，改后端代码需重建或改在宿主机跑。
-- 本地联调时若要让后端直接托管前端页面：`cp -r frontend/dist/* backend/app/static/`（平时由 Dockerfile 多阶段构建注入，无需手动同步）。
+- 后端配置读根目录 `.env`（gitignored，由 `internal/config/config.go` 定位到仓库根），参考 `.env.example`。
+- 也可 `docker compose -f compose.dev.yaml up -d --build` 全量起容器。
+- 本地联调时若要让后端直接托管前端页面：`cp -r frontend/dist/* backend/cmd/server/static/` 或通过环境变量 `STATIC_PATH` 指定（平时由 Dockerfile 多阶段构建注入到 `/app/static`，无需手动同步）。
 
 ## 验证与发布
 
 ```bash
-# 后端测试（backend/ 下）：唯一测试入口，tests/test_api.py，sqlite 内存库 + 本地临时存储，无需外部服务
-uv run pytest
+# 后端测试（backend/ 下）：唯一测试入口，tests/api_test.go，使用本地 PostgreSQL dev 容器，无需外部服务
+cd backend && go test -v -count=1 ./...
 
 # 前端类型检查 + 构建（tsc 严格模式会拒绝未使用导入，必须通过）
-npm run build
+cd frontend && npm run build
 
-# 数据库迁移（backend/ 下；应用启动时也会自动 upgrade head）
-uv run alembic revision --autogenerate -m "desc"
-uv run alembic upgrade head
-
-# Docker（uv.lock 与 package-lock.json 必须与依赖同步，镜像内用 --frozen / npm ci）
-docker build -t ghcr.io/teemosun/privatedrop:latest .
+# Docker 镜像构建（Dockerfile 内置多阶段构建，支持国内 GOPROXY 代理构建）
+docker build --build-arg GOPROXY=https://goproxy.cn,direct -t ghcr.io/teemosun/privatedrop:latest .
 
 # 发布
 git add <files> && git commit -m "feat: 描述" && git push
@@ -67,30 +61,30 @@ bash scripts/docker-push.sh   # 打包并推送 GHCR，流程见 docs/Docker镜�
 
 ## 关键约定
 
-- **启动校验**（`backend/app/main.py: validate_secrets`，不满足直接拒绝启动）：`APP_PASSWORD`/`JWT_SECRET` 为 `admin`/`change-me`/`changeme`/`password`/`secret` 或空。`compose.yaml` 还要求 `APP_PASSWORD`/`JWT_SECRET` 已设置（`${VAR:?}` 直接报错）；`compose.dev.yaml` 给默认值（dev-password 等）可开箱即用。
-- **数据库**：PostgreSQL 16，Alembic 管理迁移（改 `models.py` 必须生成迁移）；`alembic/env.py` 读取 `settings.database_url`（即根目录 .env），单次 autogenerate 需 db 可达。
+- **启动校验**（`backend/cmd/server/main.go: validateSecrets`，不满足直接拒绝启动）：`APP_PASSWORD`/`JWT_SECRET` 为 `admin`/`change-me`/`changeme`/`password`/`secret` 或空。`compose.yaml` 还要求 `APP_PASSWORD`/`JWT_SECRET` 已设置（`${VAR:?}` 直接报错）；`compose.dev.yaml` 给默认值（dev-password 等）可开箱即用。
+- **数据库与迁移**：PostgreSQL 16，Go 后端启动时自动执行幂等 Schema 迁移（`internal/database/migrations.go`），并自动同步更新 `alembic_version` 至 `0005`，保证与历史迁移完全平滑兼容。
 - **文件存储与引用计数**：
   - 本地内容寻址存储（CAS），物理文件按 `data/storage/files/{sha256[:2]}/{sha256[2:4]}/{sha256}` 分片落盘。
-  - 天然支持 SHA-256 去重与秒传；下载使用 `FileResponse` 零拷贝并支持 HTTP Range 断点续传。
-  - 删除时仅在全库引用计数为 0 时从物理磁盘真正删除（`delete_file_if_unreferenced`）。
+  - 天然支持 SHA-256 去重与秒传；下载使用零拷贝并支持 HTTP Range 断点续传。
+  - 删除时仅在全库引用计数为 0 时从物理磁盘真正删除（`DeleteFileIfUnreferenced`）。
 - **软删除与回收站机制**：
   - 用户删除条目走软删除（`deleted_at = now()`），普通列表过滤隐藏；
   - 条目在回收站保留 30 天，支持手动恢复或手动彻底粉碎（`purge`）；
   - 彻底删除或一键清空回收站时物理删除 DB 记录并同步回收未引用的物理文件。
-- **定时清理任务（`cleanup.py`）**：
-  - `app/main.py` 的 lifespan 启动 10 分钟间隔的后台异步循环：
-    1. **临时中转到期清理**：扫描 `is_ephemeral=True` 且 `expires_at <= now` 的条目，物理删除并广播 `item_deleted`。
+- **定时清理任务（`internal/worker/cleanup.go`）**：
+  - 应用启动后在后台启动 10 分钟间隔的异步定时循环：
+    1. **临时中转到期清理**：扫描 `is_ephemeral=true` 且 `expires_at <= now` 的条目，物理删除并广播 `item_deleted`。
     2. **回收站 30 天到期清理**：扫描 `deleted_at <= now - 30d` 的条目，物理删除 DB 记录并回收物理文件。
     3. **草稿与孤儿碎片清理**：清理超过 4×URL TTL 的未完成文件上传草稿及临时碎片文件。
-- **认证**：单密码单用户，JWT 双 token（access 15min / refresh 30 天轮换）。登出吊销：refresh 吊销走 DB 字段 `Device.refresh_jti`（重启不失效），access 吊销走内存 jti 集合（重启失效）；前端 WS 收到 4401 会先刷新 token 再重连。登录限流 5 次/分/IP（基于 XFF，注意伪造）。
-- **SPA**：`backend/app/static/` 存在时挂载 SPA，`/{path}` catch-all 对非 `/api` 请求回退 `index.html`（深链刷新不 404）；`/healthz` 为公开健康检查端点（compose healthcheck 使用）。
-- **实时同步**：WS 广播为进程内 ConnectionManager（uvicorn 单进程，勿加 `--workers`），断线重连后前端游标拉增量兜底。
-- **前端产物**：`frontend/dist/` 与 `backend/app/static/` 均 gitignored；镜像由 Dockerfile 多阶段构建注入，`backend/app/static/` 存在时后端挂载 SPA。
-- **测试**：改 `db.py` 连接逻辑时注意 `tests/test_api.py` 会把 `db.SessionLocal` 整体替换为 sqlite 内存库，测试会绕过真实连接逻辑。单元测试覆盖普通时间线、中转站过期清理、软删除、回收站恢复、彻底删除与 30 天清理。
+    4. **撤销 JTI 过期清理**：清理过期的已撤销 access token JTI 记录。
+- **认证**：单密码单用户，JWT 双 token（access 15min / refresh 30 天轮换）。登出吊销：refresh 吊销走 DB 字段 `Device.refresh_jti`（重启不失效），access 吊销走内存 jti 集合（重启失效）；前端 WS 收到 4401 会先刷新 token 再重连。登录限流 5 次/分/IP（安全代理提取客户端 IP，防止 XFF 伪造绕过）。
+- **SPA**：当静态资源目录（`/app/static` 或环境变量 `STATIC_PATH`）存在时自动挂载 SPA，对非 `/api` 请求回退 `index.html`（深链刷新不 404）；内置路径防穿越检查；`/healthz` 为公开健康检查端点（带 `-healthcheck` CLI 标志）。
+- **实时同步**：WS 广播为高效的 Hub + Client Pump 模式，消除并发写竞态；断线重连后前端游标拉增量兜底。
+- **前端产物**：`frontend/dist/` 与后端静态目录均 gitignored；镜像由 Dockerfile 多阶段构建注入。
 
 ## 变更检查清单
 
-- 改 `models` → 生成并检查 Alembic 迁移
+- 改数据结构 → 更新 `internal/database/migrations.go` 并保持幂等性
 - 改前端 → `npm run build` 必须通过（tsc 严格模式会拒绝未使用导入）
-- 改 pyproject/package.json → 同步锁文件，否则 Docker 构建失败
-- 不提交：`.env`、`data/`、`frontend/dist/`、`backend/app/static/`
+- 改后端依赖 → 执行 `go mod tidy`
+- 不提交：`.env`、`data/`、`frontend/dist/`、`backend/privatedrop`

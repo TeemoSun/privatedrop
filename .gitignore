@@ -37,3 +37,9 @@ data/
 
 # Mimosa 安全扫描本地产物
 .mimosa/
+
+# Go
+privatedrop
+backend/privatedrop
+backend/data/
+backend_py/

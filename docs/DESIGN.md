@@ -33,9 +33,9 @@
  ┌─────────────┐     │   ┌───────────────────────┐    ┌────────┐   │
  │ React 18    │────►│   │  privatedrop（单容器）  │───►│PostgreSQL│   │
  │ Vite + TS   │ 8000│   │ ┌───────────┐  /api    │    │   16   │   │
- │ Tailwind 3  │     │   │ │ FastAPI   │  /ws     │    └────────┘   │
- │ TanStack Q  │     │   │ │ (uvicorn  │          │                 │
- │ shadcn-style│     │   │ │  单进程)   │          │                 │
+ │ Tailwind 3  │     │   │ │ Go (Chi)  │  /ws     │    └────────┘   │
+ │ TanStack Q  │     │   │ │ 纯净静态   │          │                 │
+ │ shadcn-style│     │   │ │ 二进制    │          │                 │
  └─────────────┘     │   │ └───────────┘          │                 │
                      │   │ static: 前端构建产物    │                 │
                      │   │ storage: 本地哈希物理文件│                │
@@ -43,24 +43,24 @@
                      └─────────────────────────────────────────────┘
 ```
 
-- **同源部署**：前端构建产物打进 FastAPI 静态目录，一个应用容器对外服务，无 CORS 问题。
-- **uvicorn 单进程**：个人应用并发极低。WS 广播（`ConnectionManager`）、限流（内存 deque）全部进程内；token 吊销不靠内存列表而是 refresh 绑定 `device_id` 查表，**因此不需要 Redis 且重启安全**。
-- **本地内容寻址存储（CAS）**：文件物理路径按 `data/storage/files/{sha256[:2]}/{sha256[2:4]}/{sha256}` 分片存储，天然支持秒传与重复数据删除；下载使用 `FileResponse` 零拷贝下发。
+- **同源部署**：前端构建产物打进静态目录，一个单二进制容器对外服务，无 CORS 问题。
+- **极简轻量**：Chi 路由 + 原生标准库，内存占用从 Python 的 ~92MB 骤降至 ~11MB（~89% 降幅）。WS 广播（Hub + Client Pump 模式）、限流全部进程内；token 吊销不靠内存列表而是 refresh 绑定 `device_id` 查表，**因此不需要 Redis 且重启安全**。
+- **本地内容寻址存储（CAS）**：文件物理路径按 `data/storage/files/{sha256[:2]}/{sha256[2:4]}/{sha256}` 分片存储，天然支持秒传与重复数据删除；下载使用零拷贝下发。
 
 ## 3. 技术选型
 
 | 层 | 选型 | 说明 |
 |----|------|------|
-| 后端框架 | FastAPI + Pydantic v2 + SQLAlchemy 2 (async) | 成熟异步栈 |
+| 后端框架 | Go 1.23 + Chi 路由 | 超高性能与极简轻量，静态编译无运行时依赖 |
 | 认证 | JWT 双 token + bcrypt + refresh rotation + device_id 绑定吊销 | 无状态、无用户表；refresh 绑定设备，删设备即吊销 |
-| 数据库 | PostgreSQL 16 + Alembic | 结构化元数据与引用计数管理 |
+| 数据库 | PostgreSQL 16 + 内置幂等迁移 | 结构化元数据与引用计数管理，兼容原 Alembic 版本表 |
 | 文件存储 | 本地内容寻址存储（CAS，SHA-256 分片） | 天然去重、秒传、零拷贝下载 |
-| 实时推送 | WebSocket（FastAPI 进程内 ConnectionManager） | 单进程即可，无 Redis |
+| 实时推送 | WebSocket（Hub + Client Pump 模式） | 消除并发写竞态，断线重连增量拉取兜底 |
 | 前端 | React 18 + Vite 5 + TS 5.5 + Tailwind 3 | 同构技术栈 |
 | 前端 UI | shadcn 风格自写组件（Radix + cva + lucide-react） | 与业务零耦合，可直接维护 |
 | 前端状态 | TanStack Query 5（服务端状态）+ 手写 useState | 不引全局状态库 |
-| 部署 | Docker Compose 单应用容器 + db | 双容器极简部署 |
-| 依赖管理 | uv（后端）+ npm（前端） | — |
+| 部署 | Docker Compose 单应用容器 + db | 双容器极简部署（极简 Alpine 运行环境） |
+| 依赖管理 | Go Modules（后端）+ npm（前端） | — |
 
 ## 4. 认证与设备模型
 

@@ -20,11 +20,11 @@
 `Dockerfile` 为多阶段构建（3 阶段）：
 
 - **Stage 1 `frontend`**：基于 `node:20-alpine`，执行 `npm ci` + `npm run build`，产出前端 `dist`。
-- **Stage 2 `builder`**：基于 `python:3.12-slim`，安装 `uv`（来自 `ghcr.io/astral-sh/uv:0.5.26`），`uv sync --frozen --no-dev --no-install-project` 安装后端依赖。
-- **Stage 3 `runtime`**：基于 `python:3.12-slim`，从 builder 复制虚拟环境，拷入后端业务代码与前端静态产物，暴露 `8000` 端口，以 uvicorn 启动。
+- **Stage 2 `builder`**：基于 `golang:1.23-alpine`，静态编译 Go 后端为纯净可执行文件 `/app/privatedrop`（`-ldflags="-s -w"`）。
+- **Stage 3 `runtime`**：基于极简 `alpine:3.20`，拷入编译好的二进制与前端静态产物，暴露 `8000` 端口。
 
-> 注意：alembic 迁移由 `app.main.lifespan` 在容器启动时自动执行，Dockerfile 不单独运行迁移。
-> 镜像声明 `HEALTHCHECK`（探测 `/healthz`）；`APP_PASSWORD` / `JWT_SECRET` 为空或占位值时容器启动直接报错退出。
+> 注意：Schema 幂等迁移由 Go 后端启动时自动执行，Dockerfile 不单独运行迁移。
+> 镜像声明 `HEALTHCHECK`（探测 `/app/privatedrop -healthcheck`）；`APP_PASSWORD` / `JWT_SECRET` 为空或占位值时容器启动直接报错退出。
 
 ---
 
