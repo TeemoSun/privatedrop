@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC','Segoe UI',system-ui,Arial,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c0c11"/>
+      <stop offset="0.55" stop-color="#111116"/>
+      <stop offset="1" stop-color="#0a0a14"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="360" rx="20" fill="url(#bg)"/>
+  <circle cx="150" cy="30" r="280" fill="url(#glowA)"/>
+  <circle cx="1070" cy="340" r="300" fill="url(#glowB)"/>
+
+  <!-- logo mark（与 frontend/public/logo.svg 一致） -->
+  <g transform="translate(562,44) scale(0.1484375)">
+    <rect x="32" y="32" width="448" height="448" rx="108" fill="#18181B"/>
+    <rect x="32" y="32" width="448" height="448" rx="108" fill="none" stroke="#27272A" stroke-width="4"/>
+    <g fill="none" stroke="#F4F4F5" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 256 138 V 282"/>
+      <path d="M 202 192 L 256 138 L 310 192"/>
+      <path d="M 204 218 H 182 C 168 218 156 230 156 244 V 346 C 156 360 168 372 182 372 H 330 C 344 372 356 360 356 346 V 244 C 356 230 344 218 330 218 H 308"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <text x="600" y="172" text-anchor="middle" font-size="54" font-weight="700" letter-spacing="-0.5" fill="#fafafa">PrivateDrop</text>
+
+  <!-- tagline -->
+  <text x="600" y="208" text-anchor="middle" font-size="19" fill="#a1a1aa">自托管 · 跨设备即时快传 · 数据完全自控</text>
+
+  <!-- feature chips -->
+  <g font-size="14" fill="#d4d4d8">
+    <rect x="263" y="236" width="100" height="36" rx="18" fill="#ffffff" fill-opacity="0.04" stroke="#3f3f46"/>
+    <text x="313" y="259" text-anchor="middle">实时同步</text>
+
+    <rect x="377" y="236" width="160" height="36" rx="18" fill="#ffffff" fill-opacity="0.04" stroke="#3f3f46"/>
+    <text x="457" y="259" text-anchor="middle">SHA-256 去重秒传</text>
+
+    <rect x="551" y="236" width="115" height="36" rx="18" fill="#ffffff" fill-opacity="0.04" stroke="#3f3f46"/>
+    <text x="608.5" y="259" text-anchor="middle">隐私时间线</text>
+
+    <rect x="680" y="236" width="138" height="36" rx="18" fill="#ffffff" fill-opacity="0.04" stroke="#3f3f46"/>
+    <text x="749" y="259" text-anchor="middle">Docker 一键部署</text>
+
+    <rect x="832" y="236" width="105" height="36" rx="18" fill="#ffffff" fill-opacity="0.04" stroke="#3f3f46"/>
+    <text x="884.5" y="259" text-anchor="middle">17 种语言</text>
+  </g>
+
+  <!-- deploy hint -->
+  <text x="600" y="316" text-anchor="middle" font-size="14" fill="#71717a" font-family="'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace">$ docker compose up -d</text>
+</svg>

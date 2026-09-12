@@ -1,146 +1,213 @@
-# PrivateDrop
+<div align="center">
 
-自托管 Edge Drop 替代品。把多台设备关联到同一份数据空间，在任意设备拖入文件或写一条笔记，其他设备即时可见、可下载。单密码登录，文件本地哈希存储管理，数据完全自控。
+<img src="docs/images/hero.svg" alt="PrivateDrop — 自托管的跨设备即时快传空间" width="860" />
 
-- 前端：React 18 + Vite 5 + TypeScript + Tailwind 3（shadcn 风格自写组件，TanStack Query）
-- 后端：Go 1.23 + Chi 路由 + PostgreSQL 16（纯净静态编译，超低内存开销 ~11MB）
-- 文件存储：本地内容寻址存储（CAS），按 SHA-256 分片存储，天然去重秒传，零拷贝断点续传下载
-- 实时同步：WebSocket 进程内广播（Hub + Client Pump），断线重连后游标增量拉取兜底
-- 部署：单应用容器 + PostgreSQL，Docker Compose 一键启动
+[![Docker Image](https://img.shields.io/badge/Docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://github.com/teemosun/privatedrop/pkgs/container/privatedrop)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](backend/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](frontend/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-详细设计见 [docs/DESIGN.md](docs/DESIGN.md)。
+**简体中文** | [English](./README.en.md)
 
-## 功能
+</div>
 
-- 单密码登录（`APP_PASSWORD` 环境变量配置，无注册）
-- 设备登记：每台设备首次登录自动注册，可改名/删除（删除即吊销该设备登录）
-- 文件拖拽上传（直接流式写入后端，带进度）、下载（零拷贝、HTTP Range 断点续传）
-- SHA-256 存储去重与秒传（相同文件瞬间完成且只占一份磁盘）
-- 文本笔记（纯文本，不产生文件）
-- 文件 + 笔记混合时间线（倒序、游标分页、加载更多）
-- WebSocket 实时推送（新条目/删除在所有在线设备即时出现）
-- 上传完整性校验（size + sha256）
-- 孤儿对象与临时碎片清理（定时回收）
+**PrivateDrop** 是一个部署在自己服务器上的「随身快传 + 笔记」空间，可以理解为 **自托管的 AirDrop / LocalSend 替代品**：把电脑、手机、平板连到同一个私密空间，任意设备拖入文件或随手记一条笔记，其他设备**实时同步、即点即下**。
 
-## 项目结构
+- 🔑 **单密码登录**，无注册流程，登录即用
+- 📁 **文件本地存储**，不经任何第三方，数据 100% 自控
+- 🐳 **单容器部署**，Docker Compose 一条命令跑起来
 
-```
-privatedrop/
-├── compose.yaml          # 生产（PRD）部署：app + db
-├── compose.dev.yaml      # 开发（DEV）部署：app + db（带端口映射/默认值）
-├── Dockerfile            # 多阶段：前端构建产物 + Go 静态编译打进 Alpine 镜像
-├── .env.example          # 环境变量示例
-├── docs/                 # 设计文档与发布流程
-├── scripts/docker-push.sh
-├── backend/              # Go 后端
-│   ├── cmd/server/       # 程序入口（main.go，含启动校验与健康检查）
-│   ├── internal/         # 内部包（api/ config/ database/ models/ security/ storage/ worker/ ws）
-│   └── tests/            # 自动化集成测试套件
-└── frontend/             # React 前端（npm 管理）
-    └── src/              # 页面 / 组件 / lib（api、类型、工具）
-```
+<br/>
 
-## 部署（PRD）
+## 🖼️ 界面预览
 
-前置条件：Docker + Docker Compose。
+<div align="center">
 
-### 1. 准备环境变量
+<img src="docs/images/ui-overview.svg" alt="PrivateDrop 界面预览：桌面端与移动端" width="920" />
+
+</div>
+
+IM 式即时交互：消息流正序排列、输入框固定底部、桌面端任意位置拖入文件即可发送；深色 / 浅色主题自适应，桌面与移动端同一套体验。
+
+## ✨ 核心特性
+
+**🔄 传输与同步**
+
+- IM 式聊天布局：待传文件紧凑排列在输入框上方，带上传进度条与一键清空
+- `Enter` 发送、`Shift + Enter` 换行，自动识别输入法状态——拼音选词按回车不会误发送
+- WebSocket 实时推送：新文件 / 笔记在所有在线设备即时出现；断线自动重连，并用游标增量补拉，不丢条目
+- 文件流式上传、零拷贝下载，支持 HTTP Range 断点续传；上传带 size + SHA-256 双重完整性校验
+
+**📦 存储效率**
+
+- 内容寻址存储（CAS）：物理文件按 SHA-256 分片落盘，相同文件自动去重、秒传，只占一份磁盘
+- 引用计数回收：同一文件被多处引用时，只有全部删除后才真正释放磁盘空间
+
+**🔒 隐私与安全**
+
+- JWT 双 token 认证：15 分钟 access + 30 天 refresh 轮换，支持按设备吊销登录
+- 隐私时间线：**长按「时间线」按钮 700ms** 打开的隐藏私密空间，内容与常规时间线、临时中转完全隔离
+- 生命周期自动管理：临时中转内容 24 小时后物理销毁并回收磁盘；删除内容进回收站保留 30 天，可恢复或彻底粉碎
+- 多项内置加固：CSP 安全响应头、登录限流（5 次/分/IP，防 XFF 伪造）、WS 认证 token 不进 URL、容器以非 root 用户运行
+
+**🌍 开箱即用**
+
+- 界面内置 17 种语言（简繁中文、英、日、韩、德、法、西、俄等），跟随浏览器自动切换
+- 移动端深度适配：软键盘弹出不错位、严格视口锚定、Android 系统文件选择器全格式支持
+
+### 页面一览
+
+| 页面 | 路由 | 说明 |
+|---|---|---|
+| ⚡ 临时中转 | `/` | 默认首页，跨设备快传；内容与文件 24 小时后自动销毁 |
+| 📊 时间线 | `/timeline` | 永久保存的文本笔记与文件列表 |
+| 🔒 隐私时间线 | `/secret` | 长按「时间线」700ms 打开的隐藏私密空间 |
+| ⚙️ 管理 | `/manage` | 设备管理（识别 / 重命名 / 踢出设备）、回收站（30 天内恢复 / 彻底删除） |
+
+## 🚀 快速开始
+
+> 前置要求：一台能运行 Docker 的机器即可——NAS、VPS 或家里的闲置主机都行。
+
+### 1. 准备配置
 
 ```bash
+git clone https://github.com/teemosun/privatedrop.git
+cd privatedrop
 cp .env.example .env
-# 编辑 .env，必填项（占位值会被应用启动校验拒绝）：
-#   APP_PASSWORD         登录密码（强密码）
-#   JWT_SECRET           JWT 签名密钥（随机长字符串）
-# 可选：POSTGRES_PASSWORD / STORAGE_PATH / MAX_FILE_SIZE / UPLOAD_URL_TTL_SECONDS …
 ```
 
-### 2. 启动
+编辑 `.env`，设置两个必填项（占位值会被启动校验直接拒绝）：
+
+```dotenv
+APP_PASSWORD=换成你的强登录密码
+JWT_SECRET=换成随机长字符串
+```
+
+### 2. 一键启动
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
-- 应用入口：`http://<主机>:8000`
-- 首次启动自动创建存储目录并执行数据库迁移
-- 日志：`docker compose logs -f app`
+首次启动会自动拉取镜像、初始化数据库并执行迁移，无需其他手动步骤。
 
-### 3. 数据持久化
+### 3. 开始使用
 
-数据保存在宿主机相对路径（无需具名卷）：
+浏览器打开 `http://<主机IP>:8000`，输入 `APP_PASSWORD` 登录即可。手机、平板访问同一地址，登录后自动注册为新设备，可在「管理 → 设备管理」中重命名或踢出。
 
-- `./data/pgdata/` — PostgreSQL 数据库数据
-- `./data/storage/` — 本地文件存储数据（`files/` 分片存储与 `tmp/` 临时文件）
+> **💾 数据与备份**：所有数据都落在宿主机 `./data/` 目录（`pgdata/` 数据库 + `storage/` 文件），直接备份这个目录即可完成整体备份；升级或重建容器不影响数据。
+>
+> **🧰 常用运维**：`docker compose logs -f app` 查看日志；`docker compose down` 停服；拉取新版镜像后重新 `docker compose up -d` 即完成升级。也可以从源码本地构建：`docker build -t ghcr.io/teemosun/privatedrop:latest .`
 
-备份时直接备份 `data/` 目录即可。
-
-### 4. 升级 / 停机
-
-```bash
-docker compose down       # 停服（数据保留在 ./data/）
-docker compose up -d --build   # 或重建镜像后 docker compose up -d
-```
-
-## 开发（DEV）
-
-开发模式下后端容器需要带默认值能直接启动，因此 DEV 使用独立 compose 文件：
-
-```bash
-# 1. 启动依赖（PostgreSQL，带宿主端口映射 5432，供本地后端连接）
-docker compose -f compose.dev.yaml up -d db
-
-# 2. 后端（backend/ 目录下执行，配置自动向上查找根目录 .env）
-cd backend
-# 首次或依赖变动时执行 go mod tidy
-go run ./cmd/server                      # 启动服务在 :8000
-
-# 3. 前端（另开终端）
-cd frontend
-npm install
-npm run dev        # http://localhost:5173，/api 与 /api/ws 代理到 127.0.0.1:8000
-```
-
-> 登录密码默认 `dev-password`（见 compose.dev.yaml）。
-> DEV 数据存放在 `./data/dev/`，与 PRD 隔离。
-> 也可以直接 `docker compose -f compose.dev.yaml up -d --build` 全量起容器。
-
-### 配置校验
-
-启动时校验以下项，不满足直接拒绝启动（`cmd/server/main.go: validateSecrets`）：
-
-- `APP_PASSWORD` / `JWT_SECRET` 非空且不是占位值（`admin`/`change-me`/`changeme`/`password`/`secret`）
-
-## 测试
-
-```bash
-# 后端自动化测试（backend/ 下，使用本地 PostgreSQL dev 容器，覆盖全流程）
-cd backend && go test -v -count=1 ./...
-
-# 前端类型检查 + 构建（tsc 严格模式）
-cd frontend && npm run build
-```
-
-## 发布
-
-本项目镜像托管于 GitHub Container Registry（`ghcr.io/teemosun/privatedrop`），支持 GitHub Actions 自动构建发布：
-
-- **自动化发布**：向 `main` 分支推送代码或打 Release tag 会自动触发 GitHub Actions 构建并发布镜像。
-- **本地发布**：执行 `bash scripts/docker-push.sh` 脚本构建并推送到 GHCR。
-
-详细发布流程见 [docs/Docker镜像打包上传.md](docs/Docker镜像打包上传.md) 与 [docs/GitHub推送流程.md](docs/GitHub推送流程.md)。
-
-## 环境变量
+## ⚙️ 环境变量
 
 | 变量 | 必填 | 默认值 | 说明 |
 |---|---|---|---|
-| `APP_PASSWORD` | PRD 必填 | — | 登录密码（bcrypt 哈希，启动时生成） |
-| `JWT_SECRET` | PRD 必填 | — | JWT HS256 签名密钥 |
-| `DATABASE_URL` | — | compose 内自动生成 | SQLAlchemy async URL |
-| `STORAGE_PATH` | — | `./data/storage` | 本地物理文件存储根目录 |
-| `MAX_FILE_SIZE` | — | `5368709120`（5GiB） | 单文件/条目总大小上限（字节） |
-| `UPLOAD_URL_TTL_SECONDS` | — | `900` | 临时下载 Ticket 有效期（秒） |
+| `APP_PASSWORD` | ✅ | — | 登录密码（弱占位值会拒绝启动） |
+| `JWT_SECRET` | ✅ | — | JWT 签名密钥（随机长字符串） |
+| `POSTGRES_PASSWORD` | — | `privatedrop` | PostgreSQL 密码 |
+| `MAX_FILE_SIZE` | — | `5368709120` | 单文件 / 条目大小上限（字节），默认 5 GiB |
+| `UPLOAD_URL_TTL_SECONDS` | — | `900` | 临时下载票据有效期（秒） |
 
-## 常见问题
+## 🏗️ 架构与技术栈
 
-- **登录提示密码错误**：确认 `APP_PASSWORD` 已配置且未被 `validate_secrets` 拒绝（错误会直接导致启动失败并输出原因）。
-- **断线重连**：WS 断开后前端指数退避重连，重连成功用游标增量拉取兜底，不会丢条目。
-- **多进程部署**：WS 广播与限流为进程内实现，请勿加 `--workers`；如需扩容见 DESIGN.md §12。
+<div align="center">
+
+<img src="docs/images/architecture.svg" alt="PrivateDrop 架构图" width="760" />
+
+</div>
+
+- **前端**：React 18 + Vite + TypeScript（tsc 严格模式）+ Tailwind CSS，shadcn 风格组件
+- **后端**：Go 1.25 + Chi 路由，静态编译单二进制，运行内存开销约 11 MB
+- **数据库**：PostgreSQL 16，启动时自动执行幂等 Schema 迁移
+- **实时通道**：进程内 WebSocket Hub + Client Pump 广播，无并发写竞态
+- **后台任务**：10 分钟间隔定时清理（临时内容到期、回收站 30 天到期、孤儿碎片、过期 JTI）
+
+## 📂 项目结构
+
+```text
+privatedrop/
+├── compose.yaml            # 生产部署：app + PostgreSQL 16
+├── compose.dev.yaml        # 本地开发：带默认值，开箱即用
+├── Dockerfile              # 多阶段构建：前端产物 + Go 静态编译 → Alpine
+├── .env.example            # 环境变量示例
+├── docs/                   # 设计文档与发布流程
+├── scripts/                # 镜像推送 / 容器入口脚本
+├── backend/                # Go 后端
+│   ├── cmd/server/         # 入口：启动校验 / 健康检查 / SPA 托管
+│   ├── internal/           # api · config · database · security · storage · worker · ws
+│   └── tests/              # 自动化集成测试
+└── frontend/               # React 前端
+    └── src/                # pages · components · lib（api / i18n / 工具）
+```
+
+## 🛠️ 本地开发
+
+```bash
+# 1. 启动 PostgreSQL（仅绑定 127.0.0.1:5432）
+docker compose -f compose.dev.yaml up -d db
+
+# 2. 后端（Go >= 1.25；配置自动读取根目录 .env，可复制 .env.example）
+cd backend && go run ./cmd/server        # 监听 :8000
+
+# 3. 前端（另开终端，Node 20+）
+cd frontend && npm install && npm run dev   # http://localhost:5173，/api 代理到后端
+```
+
+## 🧪 测试
+
+```bash
+cd backend && go test -v -count=1 ./...   # 后端集成测试（依赖本地 dev 数据库容器）
+cd frontend && npm run build              # 前端类型检查 + 构建
+```
+
+## 📦 镜像发布
+
+镜像托管于 GitHub Container Registry，可直接拉取：
+
+```bash
+docker pull ghcr.io/teemosun/privatedrop:latest
+```
+
+- 推送到 `main` 分支或打 Release tag，会自动触发 GitHub Actions 构建并发布镜像
+- 也可以本地执行 `bash scripts/docker-push.sh` 手动构建推送
+
+## ❓ 常见问题
+
+<details>
+<summary><b>如何修改登录密码？</b></summary>
+
+编辑 `.env` 中的 `APP_PASSWORD`，然后 `docker compose up -d` 重启生效。启动时会校验密码强度，`admin`、`password` 等弱占位值会直接拒绝启动。
+</details>
+
+<details>
+<summary><b>如何备份数据 / 迁移到新机器？</b></summary>
+
+停服后把 `data/` 目录整体打包复制到新机器的相同位置即可——数据库与全部文件都在里面。恢复后 `docker compose up -d` 启动。
+</details>
+
+<details>
+<summary><b>想换一个端口？</b></summary>
+
+修改 `compose.yaml` 中 app 服务的端口映射，例如 `"9000:8000"`，然后重启容器。
+</details>
+
+<details>
+<summary><b>支持多用户吗？</b></summary>
+
+不支持。PrivateDrop 定位为个人 / 家庭自用：单密码共享同一数据空间，所有已登录设备可在「管理 → 设备管理」中单独吊销。
+</details>
+
+## 📚 更多文档
+
+- [设计文档](docs/DESIGN.md) —— 架构设计与关键实现细节
+- [设备型号映射更新指南](docs/设备型号映射更新指南.md)
+- [Docker 镜像打包上传](docs/Docker镜像打包上传.md) · [GitHub 推送流程](docs/GitHub推送流程.md)
+
+---
+
+<div align="center">
+
+如果 PrivateDrop 对你有帮助，欢迎点个 Star ⭐
+
+</div>

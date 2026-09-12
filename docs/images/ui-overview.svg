@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="756" viewBox="0 0 1240 756" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC','Segoe UI',system-ui,Arial,sans-serif">
+  <defs>
+    <clipPath id="winBody"><path d="M40 88 h844 v602 a14,14 0 0 1 -14,14 h-816 a14,14 0 0 1 -14,-14 z"/></clipPath>
+    <clipPath id="phoneBody"><path d="M930 115 v510 a27,27 0 0 0 27,27 h202 a27,27 0 0 0 27,-27 v-510 z"/></clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- ================= 桌面窗口 ================= -->
+  <g filter="url(#shadow)">
+    <rect x="40" y="44" width="844" height="660" rx="14" fill="#141416" stroke="#2e2e32"/>
+    <g clip-path="url(#winBody)">
+      <!-- sidebar -->
+      <rect x="40" y="88" width="190" height="616" fill="#131315"/>
+      <line x1="230" y1="88" x2="230" y2="704" stroke="#242428"/>
+      <text x="56" y="122" font-size="15" font-weight="700" fill="#fafafa">PrivateDrop</text>
+      <text x="56" y="140" font-size="10.5" fill="#737378">MacBook Pro</text>
+
+      <rect x="52" y="162" width="166" height="34" rx="8" fill="#26262a"/>
+      <g transform="translate(60,170) scale(0.58)"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" fill="#fafafa"/></g>
+      <text x="88" y="184" font-size="12.5" font-weight="600" fill="#fafafa">临时中转</text>
+
+      <g transform="translate(61,211) scale(0.58)" fill="none" stroke="#9d9da2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>
+        <rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
+      </g>
+      <text x="88" y="224" font-size="12.5" fill="#9d9da2">时间线</text>
+
+      <g transform="translate(61,251) scale(0.58)" fill="none" stroke="#9d9da2" stroke-width="2">
+        <circle cx="12" cy="12" r="6.4" stroke-dasharray="3.2 2.26"/><circle cx="12" cy="12" r="2.6"/>
+      </g>
+      <text x="88" y="264" font-size="12.5" fill="#9d9da2">管理</text>
+
+      <g transform="translate(61,663) scale(0.58)" fill="none" stroke="#737378" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+      </g>
+      <text x="88" y="684" font-size="12" fill="#737378">退出登录</text>
+
+      <!-- main -->
+      <rect x="230" y="88" width="654" height="616" fill="#101012"/>
+      <g transform="translate(0,44)">
+      <rect x="505" y="104" width="104" height="22" rx="11" fill="#1c1c1e"/>
+      <text x="557" y="119" text-anchor="middle" font-size="10.5" fill="#8a8a90">今天 14:32</text>
+
+      <!-- file bubble: image -->
+      <rect x="248" y="140" width="296" height="80" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
+      <rect x="262" y="158" width="44" height="44" rx="10" fill="#4f46e5"/>
+      <g fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="270" y="166" width="28" height="28" rx="4"/>
+        <circle cx="278.5" cy="174.5" r="2.2" fill="#ffffff" stroke="none"/>
+        <path d="M270 188 l8-8 5 5 6-6 9 9"/>
+      </g>
+      <text x="318" y="172" font-size="13" font-weight="500" fill="#fafafa">海边日落.jpg</text>
+      <text x="318" y="191" font-size="11" fill="#8a8a90">3.4 MB · 来自 iPhone</text>
+      <circle cx="512" cy="180" r="13" fill="none" stroke="#3a3a3e" stroke-width="1.5"/>
+      <g stroke="#c8c8cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M512 174 v11"/><path d="M508 181 l4 4 4-4"/>
+      </g>
+
+      <!-- text bubble right -->
+      <rect x="632" y="236" width="236" height="40" rx="14" fill="#fafafa"/>
+      <text x="648" y="262" font-size="12.5" fill="#18181b">设计稿同步好了，电脑上直接取</text>
+
+      <!-- file bubble: pdf -->
+      <rect x="248" y="292" width="296" height="80" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
+      <rect x="262" y="310" width="44" height="44" rx="10" fill="#ef4444"/>
+      <text x="284" y="337" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">PDF</text>
+      <text x="318" y="324" font-size="13" font-weight="500" fill="#fafafa">Q3 财报.pdf</text>
+      <text x="318" y="343" font-size="11" fill="#8a8a90">12.8 MB · 刚刚</text>
+      <circle cx="512" cy="332" r="13" fill="none" stroke="#3a3a3e" stroke-width="1.5"/>
+      <g stroke="#c8c8cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M512 326 v11"/><path d="M508 333 l4 4 4-4"/>
+      </g>
+
+      <!-- text bubble left -->
+      <rect x="248" y="388" width="170" height="38" rx="14" fill="#1b1b1e" stroke="#2a2a2e"/>
+      <text x="264" y="412" font-size="12.5" fill="#e4e4e7">收到，马上看</text>
+      </g>
+
+      <!-- pending upload chip -->
+      <rect x="248" y="540" width="270" height="52" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
+      <rect x="260" y="550" width="32" height="32" rx="8" fill="#3f3f46"/>
+      <g fill="none" stroke="#e4e4e7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="265" y="555" width="22" height="22" rx="3"/>
+        <circle cx="271.5" cy="561.5" r="1.8" fill="#e4e4e7" stroke="none"/>
+        <path d="M265 572 l6-6 4 4 4-4 6 6"/>
+      </g>
+      <text x="302" y="560" font-size="11.5" fill="#e4e4e7">IMG_2041.heic</text>
+      <text x="302" y="574" font-size="10" fill="#8a8a90">2.1 MB · 上传中 68%</text>
+      <rect x="302" y="580" width="170" height="4" rx="2" fill="#2e2e32"/>
+      <rect x="302" y="580" width="116" height="4" rx="2" fill="#3b82f6"/>
+      <g stroke="#8a8a90" stroke-width="1.4" stroke-linecap="round"><path d="M492 561 l7 7 M499 561 l-7 7"/></g>
+
+      <!-- input bar -->
+      <line x1="230" y1="600" x2="884" y2="600" stroke="#242428"/>
+      <rect x="248" y="622" width="548" height="48" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
+      <g transform="translate(258,636) scale(0.55)" fill="none" stroke="#8a8a90" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+      </g>
+      <text x="292" y="652" font-size="12.5" fill="#6a6a70">输入消息，Enter 发送…</text>
+      <rect x="820" y="622" width="48" height="48" rx="12" fill="#fafafa"/>
+      <g stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M844 654 v-17"/><path d="M836 644 l8-8 8 8"/>
+      </g>
+    </g>
+    <!-- chrome -->
+    <path d="M54 44 h816 a14,14 0 0 1 14,14 v30 h-844 v-30 a14,14 0 0 1 14,-14 z" fill="#1c1c1e"/>
+    <circle cx="64" cy="66" r="6" fill="#ff5f57"/>
+    <circle cx="86" cy="66" r="6" fill="#febc2e"/>
+    <circle cx="108" cy="66" r="6" fill="#28c840"/>
+    <rect x="332" y="54" width="260" height="24" rx="12" fill="#101012" stroke="#2e2e32"/>
+    <g transform="translate(344,60) scale(0.5)" fill="none" stroke="#8a8a90" stroke-width="2.4">
+      <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11 V7 a4 4 0 0 1 8 0 v4"/>
+    </g>
+    <text x="366" y="70" font-size="11.5" fill="#a1a1a5">privatedrop.local</text>
+  </g>
+
+  <!-- ================= 手机 ================= -->
+  <g filter="url(#shadow)">
+    <rect x="922" y="80" width="272" height="580" rx="34" fill="#060607" stroke="#34343a" stroke-width="2"/>
+    <rect x="930" y="88" width="256" height="564" rx="27" fill="#101012"/>
+    <rect x="1023" y="98" width="70" height="18" rx="9" fill="#000000"/>
+
+    <text x="948" y="132" font-size="13" font-weight="700" fill="#fafafa">PrivateDrop</text>
+    <text x="948" y="147" font-size="9.5" fill="#8a8a90">iPhone 15</text>
+    <g transform="translate(1148,120) scale(0.5)" fill="none" stroke="#737378" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+    </g>
+
+    <g transform="translate(0,24)">
+    <rect x="946" y="166" width="132" height="34" rx="12" fill="#1b1b1e"/>
+    <text x="958" y="188" font-size="11.5" fill="#e4e4e7">电脑上见</text>
+
+    <rect x="1002" y="212" width="168" height="34" rx="12" fill="#fafafa"/>
+    <text x="1014" y="234" font-size="11.5" fill="#18181b">照片拍好了，发你原图</text>
+
+    <rect x="946" y="258" width="196" height="56" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
+    <rect x="958" y="269" width="34" height="34" rx="8" fill="#4f46e5"/>
+    <g fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="963" y="274" width="24" height="24" rx="3.5"/>
+      <circle cx="970" cy="281" r="1.9" fill="#ffffff" stroke="none"/>
+      <path d="M963 293 l7-7 4.5 4.5 5-5 7.5 7.5"/>
+    </g>
+    <text x="1002" y="281" font-size="11" font-weight="500" fill="#fafafa">海边日落.jpg</text>
+    <text x="1002" y="297" font-size="9.5" fill="#8a8a90">3.4 MB</text>
+
+    <rect x="1070" y="326" width="100" height="34" rx="12" fill="#fafafa"/>
+    <text x="1082" y="348" font-size="11.5" fill="#18181b">原图收到</text>
+
+    <rect x="994" y="404" width="64" height="20" rx="10" fill="#1c1c1e"/>
+    <text x="1026" y="418" text-anchor="middle" font-size="9" fill="#8a8a90">14:32</text>
+    </g>
+
+    <rect x="946" y="486" width="224" height="38" rx="11" fill="#1b1b1e" stroke="#2a2a2e"/>
+    <g transform="translate(954,495) scale(0.5)" fill="none" stroke="#8a8a90" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+    </g>
+    <text x="982" y="510" font-size="11" fill="#6a6a70">发送消息…</text>
+
+    <line x1="930" y1="540" x2="1186" y2="540" stroke="#242428"/>
+    <!-- bottom nav -->
+    <g transform="translate(975,545) scale(0.62)"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" fill="#fafafa"/></g>
+    <text x="984" y="581" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fafafa">临时中转</text>
+
+    <g transform="translate(1049,546) scale(0.62)" fill="none" stroke="#737378" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>
+      <rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
+    </g>
+    <text x="1058" y="581" text-anchor="middle" font-size="9.5" fill="#737378">时间线</text>
+
+    <g transform="translate(1123,545) scale(0.62)" fill="none" stroke="#737378" stroke-width="2">
+      <circle cx="12" cy="12" r="6.4" stroke-dasharray="3.2 2.26"/><circle cx="12" cy="12" r="2.6"/>
+    </g>
+    <text x="1132" y="581" text-anchor="middle" font-size="9.5" fill="#737378">管理</text>
+
+    <rect x="1030" y="632" width="56" height="4" rx="2" fill="#3a3a3e"/>
+  </g>
+</svg>
