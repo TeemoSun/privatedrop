@@ -1,178 +1,307 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1240" height="756" viewBox="0 0 1240 756" font-family="'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif">
   <defs>
-    <clipPath id="winBody"><path d="M40 88 h844 v602 a14,14 0 0 1 -14,14 h-816 a14,14 0 0 1 -14,-14 z"/></clipPath>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000000" flood-opacity="0.35"/>
-    </filter>
+    <clipPath id="win"><rect x="40" y="44" width="844" height="668" rx="14"/></clipPath>
+    <clipPath id="ph"><rect x="922" y="44" width="272" height="668" rx="20"/></clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.4"/></filter>
   </defs>
 
-  <!-- ================= Desktop window ================= -->
+  <!-- ===================== Desktop: Quick Drop ===================== -->
   <g filter="url(#shadow)">
-    <rect x="40" y="44" width="844" height="660" rx="14" fill="#141416" stroke="#2e2e32"/>
-    <g clip-path="url(#winBody)">
+    <g clip-path="url(#win)">
+      <rect x="40" y="44" width="844" height="668" fill="#141416"/>
+      <rect x="240" y="44" width="644" height="668" fill="#0a0a0b"/>
+
       <!-- sidebar -->
-      <rect x="40" y="88" width="190" height="616" fill="#131315"/>
-      <line x1="230" y1="88" x2="230" y2="704" stroke="#242428"/>
-      <text x="56" y="122" font-size="15" font-weight="700" fill="#fafafa">PrivateDrop</text>
-      <text x="56" y="140" font-size="10.5" fill="#737378">MacBook Pro</text>
+      <text x="64" y="86" font-size="16" font-weight="700" fill="#fafafa">PrivateDrop</text>
+      <text x="64" y="106" font-size="11" fill="#71717a">Linux PC</text>
+      <line x1="40" y1="124" x2="240" y2="124" stroke="#232327" stroke-width="1.5"/>
 
-      <rect x="52" y="162" width="166" height="34" rx="8" fill="#26262a"/>
-      <g transform="translate(60,170) scale(0.58)"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" fill="#fafafa"/></g>
-      <text x="88" y="184" font-size="12.5" font-weight="600" fill="#fafafa">Quick Drop</text>
-
-      <g transform="translate(61,211) scale(0.58)" fill="none" stroke="#9d9da2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>
-        <rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
+      <rect x="54" y="142" width="172" height="34" rx="8" fill="#232327"/>
+      <g transform="translate(72,152)" fill="none" stroke="#fafafa" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1.5 -7 L-4.5 0.5 H-0.2 L-1.5 7 L4.5 -0.5 H0.2 Z"/>
       </g>
-      <text x="88" y="224" font-size="12.5" fill="#9d9da2">Timeline</text>
+      <text x="94" y="163" font-size="13" font-weight="500" fill="#fafafa">Quick Drop</text>
 
-      <g transform="translate(61,251) scale(0.58)" fill="none" stroke="#9d9da2" stroke-width="2">
-        <circle cx="12" cy="12" r="6.4" stroke-dasharray="3.2 2.26"/><circle cx="12" cy="12" r="2.6"/>
+      <g transform="translate(72,192)" fill="none" stroke="#a1a1aa" stroke-width="1.6">
+        <rect x="-6.5" y="-6.5" width="5.5" height="7.5" rx="1"/>
+        <rect x="1" y="-6.5" width="5.5" height="4.5" rx="1"/>
+        <rect x="-6.5" y="1" width="5.5" height="4.5" rx="1"/>
+        <rect x="1" y="1" width="5.5" height="7.5" rx="1"/>
       </g>
-      <text x="88" y="264" font-size="12.5" fill="#9d9da2">Manage</text>
+      <text x="94" y="203" font-size="13" fill="#a1a1aa">Timeline</text>
 
-      <g transform="translate(61,663) scale(0.58)" fill="none" stroke="#737378" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+      <g transform="translate(72,232)" fill="none" stroke="#a1a1aa" stroke-width="1.6" stroke-linecap="round">
+        <circle r="3.2"/>
+        <path d="M7 0H5 M4.95 4.95L3.54 3.54 M0 7V5 M-4.95 4.95L-3.54 3.54 M-7 0H-5 M-4.95 -4.95L-3.54 -3.54 M0 -7V-5 M4.95 -4.95L3.54 -3.54"/>
       </g>
-      <text x="88" y="684" font-size="12" fill="#737378">Sign out</text>
+      <text x="94" y="243" font-size="13" fill="#a1a1aa">Manage</text>
 
-      <!-- main -->
-      <rect x="230" y="88" width="654" height="616" fill="#101012"/>
-      <g transform="translate(0,44)">
-      <rect x="502" y="104" width="110" height="22" rx="11" fill="#1c1c1e"/>
-      <text x="557" y="119" text-anchor="middle" font-size="10.5" fill="#8a8a90">Today 14:32</text>
-
-      <!-- file bubble: image -->
-      <rect x="248" y="140" width="296" height="80" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
-      <rect x="262" y="158" width="44" height="44" rx="10" fill="#4f46e5"/>
-      <g fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="270" y="166" width="28" height="28" rx="4"/>
-        <circle cx="278.5" cy="174.5" r="2.2" fill="#ffffff" stroke="none"/>
-        <path d="M270 188 l8-8 5 5 6-6 9 9"/>
+      <g transform="translate(64,681)" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.2 12.5 H5 A2 2 0 0 1 3 10.5 V3.5 A2 2 0 0 1 5 1.5 H8.2 M11.2 10 L14 7 L11.2 4 M14 7 H7.4"/>
       </g>
-      <text x="318" y="172" font-size="13" font-weight="500" fill="#fafafa">beach-sunset.jpg</text>
-      <text x="318" y="191" font-size="11" fill="#8a8a90">3.4 MB · from iPhone</text>
-      <circle cx="512" cy="180" r="13" fill="none" stroke="#3a3a3e" stroke-width="1.5"/>
-      <g stroke="#c8c8cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <path d="M512 174 v11"/><path d="M508 181 l4 4 4-4"/>
+      <text x="86" y="693" font-size="12.5" fill="#a1a1aa">Sign out</text>
+
+      <!-- feed (scrolled to bottom, first card clipped) -->
+      <!-- item 1: long note (truncated + expand, clipped by window top) -->
+      <rect x="362" y="6" width="400" height="146" rx="10" fill="#161619" stroke="#2a2a2e" stroke-width="1.3"/>
+      <text x="378" y="46" font-size="12.5" fill="#e4e4e7">New server setup notes:</text>
+      <text x="378" y="65" font-size="12.5" fill="#e4e4e7">IP 192.168.1.23, SSH port 2222</text>
+      <text x="378" y="84" font-size="12.5" fill="#e4e4e7">Panel runs on 9000 — change password</text>
+      <text x="378" y="103" font-size="12.5" fill="#e4e4e7">Backup script to add tomorrow</text>
+      <text x="378" y="123" font-size="11" fill="#71717a">Expand</text>
+      <polyline points="420,119.5 423.5,123 427,119.5" fill="none" stroke="#71717a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- item 2 -->
+      <g transform="translate(362,175)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="380" y="186" font-size="11" fill="#71717a">4h ago</text>
+      <rect x="436" y="175" width="78" height="19" rx="9.5" fill="none" stroke="#3a3a3f" stroke-width="1.3"/>
+      <g transform="translate(448,184.5)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round">
+        <circle r="5"/><path d="M0 -2.5 V0 L1.8 1"/>
+      </g>
+      <text x="458" y="188" font-size="10.5" fill="#a1a1aa">20h left</text>
+      <g transform="translate(750,184)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.3"/><circle cx="0" cy="0" r="1.3"/><circle cx="4" cy="0" r="1.3"/>
+      </g>
+      <rect x="362" y="196" width="400" height="42" rx="10" fill="#161619" stroke="#2a2a2e" stroke-width="1.3"/>
+      <text x="378" y="222" font-size="12.5" fill="#e4e4e7" font-family="'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace">docker compose up -d</text>
+
+      <!-- item 3: file -->
+      <g transform="translate(362,243)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="380" y="254" font-size="11" fill="#71717a">3h ago</text>
+      <rect x="436" y="243" width="78" height="19" rx="9.5" fill="none" stroke="#3a3a3f" stroke-width="1.3"/>
+      <g transform="translate(448,252.5)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round">
+        <circle r="5"/><path d="M0 -2.5 V0 L1.8 1"/>
+      </g>
+      <text x="458" y="256" font-size="10.5" fill="#a1a1aa">21h left</text>
+      <g transform="translate(750,252)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.3"/><circle cx="0" cy="0" r="1.3"/><circle cx="4" cy="0" r="1.3"/>
+      </g>
+      <rect x="362" y="264" width="400" height="48" rx="10" fill="#161619" stroke="#2a2a2e" stroke-width="1.3"/>
+      <rect x="372" y="272" width="380" height="32" rx="8" fill="#1e1e22" stroke="#303035" stroke-width="1.2"/>
+      <g transform="translate(384,282)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2"/>
+      </g>
+      <text x="400" y="293" font-size="12" fill="#f4f4f5">network-topology.png</text>
+      <text x="704" y="293" font-size="11" fill="#71717a" text-anchor="end">260 KB</text>
+      <g transform="translate(724,288)" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 -5 V1.5 M-2.8 -1.2 L0 1.6 L2.8 -1.2 M-4 3 V5 H4 V3"/>
       </g>
 
-      <!-- text bubble right -->
-      <rect x="578" y="236" width="290" height="40" rx="14" fill="#fafafa"/>
-      <text x="594" y="262" font-size="12.5" fill="#18181b">Synced! Grab the drafts on your PC</text>
+      <!-- item 4 -->
+      <g transform="translate(362,317)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="380" y="328" font-size="11" fill="#71717a">2h ago</text>
+      <rect x="436" y="317" width="78" height="19" rx="9.5" fill="none" stroke="#3a3a3f" stroke-width="1.3"/>
+      <g transform="translate(448,326.5)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round">
+        <circle r="5"/><path d="M0 -2.5 V0 L1.8 1"/>
+      </g>
+      <text x="458" y="330" font-size="10.5" fill="#a1a1aa">22h left</text>
+      <g transform="translate(750,326)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.3"/><circle cx="0" cy="0" r="1.3"/><circle cx="4" cy="0" r="1.3"/>
+      </g>
+      <rect x="362" y="338" width="400" height="42" rx="10" fill="#161619" stroke="#2a2a2e" stroke-width="1.3"/>
+      <text x="378" y="364" font-size="12.5" fill="#e4e4e7">DNS is live — tested over https</text>
 
-      <!-- file bubble: pdf -->
-      <rect x="248" y="292" width="296" height="80" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
-      <rect x="262" y="310" width="44" height="44" rx="10" fill="#ef4444"/>
-      <text x="284" y="337" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">PDF</text>
-      <text x="318" y="324" font-size="13" font-weight="500" fill="#fafafa">Q3-Report.pdf</text>
-      <text x="318" y="343" font-size="11" fill="#8a8a90">12.8 MB · just now</text>
-      <circle cx="512" cy="332" r="13" fill="none" stroke="#3a3a3e" stroke-width="1.5"/>
-      <g stroke="#c8c8cc" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <path d="M512 326 v11"/><path d="M508 333 l4 4 4-4"/>
+      <!-- item 5 -->
+      <g transform="translate(362,385)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="380" y="396" font-size="11" fill="#71717a">1h ago</text>
+      <rect x="436" y="385" width="78" height="19" rx="9.5" fill="none" stroke="#3a3a3f" stroke-width="1.3"/>
+      <g transform="translate(448,394.5)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round">
+        <circle r="5"/><path d="M0 -2.5 V0 L1.8 1"/>
+      </g>
+      <text x="458" y="398" font-size="10.5" fill="#a1a1aa">23h left</text>
+      <g transform="translate(750,394)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.3"/><circle cx="0" cy="0" r="1.3"/><circle cx="4" cy="0" r="1.3"/>
+      </g>
+      <rect x="362" y="406" width="400" height="42" rx="10" fill="#161619" stroke="#2a2a2e" stroke-width="1.3"/>
+      <text x="378" y="432" font-size="12.5" fill="#e4e4e7">That ZFS tutorial link is above</text>
+
+      <!-- item 6: file -->
+      <g transform="translate(362,453)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="380" y="464" font-size="11" fill="#71717a">30m ago</text>
+      <rect x="436" y="453" width="78" height="19" rx="9.5" fill="none" stroke="#3a3a3f" stroke-width="1.3"/>
+      <g transform="translate(448,462.5)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round">
+        <circle r="5"/><path d="M0 -2.5 V0 L1.8 1"/>
+      </g>
+      <text x="458" y="466" font-size="10.5" fill="#a1a1aa">23h left</text>
+      <g transform="translate(750,462)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.3"/><circle cx="0" cy="0" r="1.3"/><circle cx="4" cy="0" r="1.3"/>
+      </g>
+      <rect x="362" y="474" width="400" height="48" rx="10" fill="#161619" stroke="#2a2a2e" stroke-width="1.3"/>
+      <rect x="372" y="482" width="380" height="32" rx="8" fill="#1e1e22" stroke="#303035" stroke-width="1.2"/>
+      <g transform="translate(384,492)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2"/>
+      </g>
+      <text x="400" y="503" font-size="12" fill="#f4f4f5">privatedrop-backup.tar.gz</text>
+      <text x="704" y="503" font-size="11" fill="#71717a" text-anchor="end">18 MB</text>
+      <g transform="translate(724,498)" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 -5 V1.5 M-2.8 -1.2 L0 1.6 L2.8 -1.2 M-4 3 V5 H4 V3"/>
       </g>
 
-      <!-- text bubble left -->
-      <rect x="248" y="388" width="200" height="38" rx="14" fill="#1b1b1e" stroke="#2a2a2e"/>
-      <text x="264" y="412" font-size="12.5" fill="#e4e4e7">Got it, checking now</text>
+      <!-- item 7 -->
+      <g transform="translate(362,527)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
       </g>
+      <text x="380" y="538" font-size="11" fill="#71717a">5m ago</text>
+      <rect x="436" y="527" width="78" height="19" rx="9.5" fill="none" stroke="#3a3a3f" stroke-width="1.3"/>
+      <g transform="translate(448,536.5)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round">
+        <circle r="5"/><path d="M0 -2.5 V0 L1.8 1"/>
+      </g>
+      <text x="458" y="540" font-size="10.5" fill="#a1a1aa">23h left</text>
+      <g transform="translate(750,536)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.3"/><circle cx="0" cy="0" r="1.3"/><circle cx="4" cy="0" r="1.3"/>
+      </g>
+      <rect x="362" y="548" width="400" height="42" rx="10" fill="#161619" stroke="#2a2a2e" stroke-width="1.3"/>
+      <text x="378" y="574" font-size="12.5" fill="#e4e4e7">Stop the NAS cron jobs tonight</text>
 
-      <!-- pending upload chip -->
-      <rect x="248" y="540" width="270" height="52" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
-      <rect x="260" y="550" width="32" height="32" rx="8" fill="#3f3f46"/>
-      <g fill="none" stroke="#e4e4e7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="265" y="555" width="22" height="22" rx="3"/>
-        <circle cx="271.5" cy="561.5" r="1.8" fill="#e4e4e7" stroke="none"/>
-        <path d="M265 572 l6-6 4 4 4-4 6 6"/>
-      </g>
-      <text x="302" y="560" font-size="11.5" fill="#e4e4e7">IMG_2041.heic</text>
-      <text x="302" y="574" font-size="10" fill="#8a8a90">2.1 MB · uploading 68%</text>
-      <rect x="302" y="580" width="170" height="4" rx="2" fill="#2e2e32"/>
-      <rect x="302" y="580" width="116" height="4" rx="2" fill="#3b82f6"/>
-      <g stroke="#8a8a90" stroke-width="1.4" stroke-linecap="round"><path d="M492 561 l7 7 M499 561 l-7 7"/></g>
+      <!-- scrollbar -->
+      <rect x="874" y="60" width="4" height="596" rx="2" fill="#1c1c20"/>
+      <rect x="874" y="420" width="4" height="220" rx="2" fill="#3a3a3f"/>
 
-      <!-- input bar -->
-      <line x1="230" y1="600" x2="884" y2="600" stroke="#242428"/>
-      <rect x="248" y="622" width="548" height="48" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
-      <g transform="translate(258,636) scale(0.55)" fill="none" stroke="#8a8a90" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+      <!-- composer -->
+      <rect x="362" y="648" width="348" height="42" rx="21" fill="#151518" stroke="#2a2a2e" stroke-width="1.3"/>
+      <text x="380" y="674" font-size="11.5" fill="#6b6b70">Write a note, or add files… (Enter to send)</text>
+      <circle cx="688" cy="669" r="14" fill="#2dd4bf"/>
+      <g transform="translate(688,669)" fill="none" stroke="#0f5c50" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.5 -4.5 L-0.5 0.5 M4.5 -4.5 L1.5 4.5 L-0.5 0.5 L-4.5 -1.5 Z"/>
       </g>
-      <text x="292" y="652" font-size="12.5" fill="#6a6a70">Type a message, Enter to send…</text>
-      <rect x="820" y="622" width="48" height="48" rx="12" fill="#fafafa"/>
-      <g stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <path d="M844 654 v-17"/><path d="M836 644 l8-8 8 8"/>
+      <circle cx="728" cy="669" r="15" fill="#1a1a1e" stroke="#2f2f34" stroke-width="1.3"/>
+      <g transform="translate(728,669)" fill="none" stroke="#a1a1aa" stroke-width="1.7" stroke-linecap="round">
+        <path d="M0 -4 V4 M-4 0 H4"/>
       </g>
     </g>
-    <!-- chrome -->
-    <path d="M54 44 h816 a14,14 0 0 1 14,14 v30 h-844 v-30 a14,14 0 0 1 14,-14 z" fill="#1c1c1e"/>
-    <circle cx="64" cy="66" r="6" fill="#ff5f57"/>
-    <circle cx="86" cy="66" r="6" fill="#febc2e"/>
-    <circle cx="108" cy="66" r="6" fill="#28c840"/>
-    <rect x="332" y="54" width="260" height="24" rx="12" fill="#101012" stroke="#2e2e32"/>
-    <g transform="translate(344,60) scale(0.5)" fill="none" stroke="#8a8a90" stroke-width="2.4">
-      <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11 V7 a4 4 0 0 1 8 0 v4"/>
-    </g>
-    <text x="366" y="70" font-size="11.5" fill="#a1a1a5">privatedrop.local</text>
+    <rect x="40" y="44" width="844" height="668" rx="14" fill="none" stroke="#2a2a2e" stroke-width="1.5"/>
   </g>
 
-  <!-- ================= Phone ================= -->
+  <!-- ===================== Mobile: Timeline (Pixel 9 Pro) ===================== -->
   <g filter="url(#shadow)">
-    <rect x="922" y="80" width="272" height="580" rx="34" fill="#060607" stroke="#34343a" stroke-width="2"/>
-    <rect x="930" y="88" width="256" height="564" rx="27" fill="#101012"/>
-    <rect x="1023" y="98" width="70" height="18" rx="9" fill="#000000"/>
+    <g clip-path="url(#ph)">
+      <rect x="922" y="44" width="272" height="668" fill="#0a0a0b"/>
+      <text x="938" y="68" font-size="12.5" font-weight="700" fill="#fafafa">PrivateDrop</text>
+      <text x="1028" y="68" font-size="10" fill="#71717a">Pixel 9 Pro</text>
+      <g transform="translate(1162,62)" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.2 12.5 H5 A2 2 0 0 1 3 10.5 V3.5 A2 2 0 0 1 5 1.5 H8.2 M11.2 10 L14 7 L11.2 4 M14 7 H7.4"/>
+      </g>
+      <line x1="922" y1="84" x2="1194" y2="84" stroke="#232327" stroke-width="1.5"/>
 
-    <text x="948" y="132" font-size="13" font-weight="700" fill="#fafafa">PrivateDrop</text>
-    <text x="948" y="147" font-size="9.5" fill="#8a8a90">iPhone 15</text>
-    <g transform="translate(1148,120) scale(0.5)" fill="none" stroke="#737378" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>
+      <!-- item 1: link note -->
+      <g transform="translate(938,84)" fill="none" stroke="#71717a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="954" y="94" font-size="10" fill="#71717a">2026-09-07 21:59</text>
+      <g transform="translate(1164,90)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="4" cy="0" r="1.2"/>
+      </g>
+      <rect x="938" y="104" width="240" height="36" rx="9" fill="#161619" stroke="#2a2a2e" stroke-width="1.2"/>
+      <text x="950" y="127" font-size="10.5" fill="#e4e4e7" font-family="'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace">github.com/TeemoSun/privatedrop</text>
+
+      <!-- item 2: file -->
+      <g transform="translate(938,148)" fill="none" stroke="#71717a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="954" y="158" font-size="10" fill="#71717a">1h ago</text>
+      <g transform="translate(1164,154)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="4" cy="0" r="1.2"/>
+      </g>
+      <rect x="938" y="168" width="240" height="40" rx="9" fill="#161619" stroke="#2a2a2e" stroke-width="1.2"/>
+      <rect x="946" y="174" width="224" height="28" rx="7" fill="#1e1e22" stroke="#303035" stroke-width="1.1"/>
+      <g transform="translate(956,182.5)" fill="none" stroke="#a1a1aa" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2"/>
+      </g>
+      <text x="972" y="193" font-size="11" fill="#f4f4f5">server-log-0912.txt</text>
+      <text x="1128" y="193" font-size="10" fill="#71717a" text-anchor="end">35 KB</text>
+      <g transform="translate(1146,188)" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 -4.5 V1 M-2.4 -0.8 L0 1.4 L2.4 -0.8 M-3.4 2.6 V4.2 H3.4 V2.6"/>
+      </g>
+
+      <!-- item 3: long note -->
+      <g transform="translate(938,216)" fill="none" stroke="#71717a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="954" y="226" font-size="10" fill="#71717a">41m ago</text>
+      <g transform="translate(1164,222)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="4" cy="0" r="1.2"/>
+      </g>
+      <rect x="938" y="236" width="240" height="64" rx="9" fill="#161619" stroke="#2a2a2e" stroke-width="1.2"/>
+      <text x="950" y="260" font-size="11" fill="#e4e4e7">Flashed new firmware on router</text>
+      <text x="950" y="278" font-size="11" fill="#e4e4e7">config backup is on the PC</text>
+      <text x="950" y="294" font-size="10" fill="#71717a">Expand</text>
+      <polyline points="988,287.5 991.5,291 995,287.5" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+      <!-- item 4 -->
+      <g transform="translate(938,308)" fill="none" stroke="#71717a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="954" y="318" font-size="10" fill="#71717a">20m ago</text>
+      <g transform="translate(1164,314)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="4" cy="0" r="1.2"/>
+      </g>
+      <rect x="938" y="328" width="240" height="36" rx="9" fill="#161619" stroke="#2a2a2e" stroke-width="1.2"/>
+      <text x="950" y="351" font-size="11" fill="#e4e4e7">Monitoring screenshot is above</text>
+
+      <!-- item 5 -->
+      <g transform="translate(938,372)" fill="none" stroke="#71717a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="954" y="382" font-size="10" fill="#71717a">8m ago</text>
+      <g transform="translate(1164,378)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="4" cy="0" r="1.2"/>
+      </g>
+      <rect x="938" y="392" width="240" height="36" rx="9" fill="#161619" stroke="#2a2a2e" stroke-width="1.2"/>
+      <text x="950" y="415" font-size="11" fill="#e4e4e7">Domain expires Sep 20 — renew it</text>
+
+      <!-- item 6 -->
+      <g transform="translate(938,436)" fill="none" stroke="#71717a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 0.7 H6.2 L9.2 3.7 V11.4 A1.4 1.4 0 0 1 7.8 12.8 H2 A1.4 1.4 0 0 1 0.6 11.4 V2.1 A1.4 1.4 0 0 1 2 0.7 Z M6.2 0.7 V3.7 H9.2 M2.8 7 H7 M2.8 9.6 H7"/>
+      </g>
+      <text x="954" y="446" font-size="10" fill="#71717a">just now</text>
+      <g transform="translate(1164,442)" fill="#71717a">
+        <circle cx="-4" cy="0" r="1.2"/><circle cx="0" cy="0" r="1.2"/><circle cx="4" cy="0" r="1.2"/>
+      </g>
+      <rect x="938" y="456" width="240" height="36" rx="9" fill="#161619" stroke="#2a2a2e" stroke-width="1.2"/>
+      <text x="950" y="479" font-size="11" fill="#e4e4e7">Port forwarding done, test tonight</text>
+
+      <!-- composer -->
+      <rect x="938" y="560" width="190" height="38" rx="19" fill="#151518" stroke="#2a2a2e" stroke-width="1.2"/>
+      <text x="950" y="584" font-size="9.5" fill="#6b6b70">Write a note, or add files…</text>
+      <circle cx="1108" cy="579" r="12" fill="#2dd4bf"/>
+      <g transform="translate(1108,579)" fill="none" stroke="#0f5c50" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.8 -3.8 L-0.4 0.4 M3.8 -3.8 L1.2 3.8 L-0.4 0.4 L-3.8 -1.2 Z"/>
+      </g>
+      <circle cx="1150" cy="579" r="13" fill="#1a1a1e" stroke="#2f2f34" stroke-width="1.2"/>
+      <g transform="translate(1150,579)" fill="none" stroke="#a1a1aa" stroke-width="1.6" stroke-linecap="round">
+        <path d="M0 -3.6 V3.6 M-3.6 0 H3.6"/>
+      </g>
+
+      <!-- bottom tabs -->
+      <rect x="922" y="646" width="272" height="66" fill="#121215"/>
+      <line x1="922" y1="646" x2="1194" y2="646" stroke="#232327" stroke-width="1.5"/>
+      <g transform="translate(982,668)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1.5 -7 L-4.5 0.5 H-0.2 L-1.5 7 L4.5 -0.5 H0.2 Z"/>
+      </g>
+      <text x="982" y="694" font-size="9" fill="#71717a" text-anchor="middle">Quick Drop</text>
+      <g transform="translate(1058,668)" fill="none" stroke="#fafafa" stroke-width="1.5">
+        <rect x="-6.5" y="-6.5" width="5.5" height="7.5" rx="1"/>
+        <rect x="1" y="-6.5" width="5.5" height="4.5" rx="1"/>
+        <rect x="-6.5" y="1" width="5.5" height="4.5" rx="1"/>
+        <rect x="1" y="1" width="5.5" height="7.5" rx="1"/>
+      </g>
+      <text x="1058" y="694" font-size="9" font-weight="600" fill="#fafafa" text-anchor="middle">Timeline</text>
+      <g transform="translate(1134,668)" fill="none" stroke="#71717a" stroke-width="1.5" stroke-linecap="round">
+        <circle r="3"/>
+        <path d="M6 0H4.2 M4.24 4.24L2.96 2.96 M0 6V4.2 M-4.24 4.24L-2.96 2.96 M-6 0H-4.2 M-4.24 -4.24L-2.96 -2.96 M0 -6V-4.2 M4.24 -4.24L2.96 -2.96"/>
+      </g>
+      <text x="1134" y="694" font-size="9" fill="#71717a" text-anchor="middle">Manage</text>
     </g>
-
-    <g transform="translate(0,24)">
-    <rect x="946" y="166" width="190" height="34" rx="12" fill="#1b1b1e"/>
-    <text x="958" y="188" font-size="11.5" fill="#e4e4e7">See you on the computer</text>
-
-    <rect x="952" y="212" width="218" height="34" rx="12" fill="#fafafa"/>
-    <text x="964" y="234" font-size="11.5" fill="#18181b">Photos done — sending originals</text>
-
-    <rect x="946" y="258" width="196" height="56" rx="12" fill="#1b1b1e" stroke="#2a2a2e"/>
-    <rect x="958" y="269" width="34" height="34" rx="8" fill="#4f46e5"/>
-    <g fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="963" y="274" width="24" height="24" rx="3.5"/>
-      <circle cx="970" cy="281" r="1.9" fill="#ffffff" stroke="none"/>
-      <path d="M963 293 l7-7 4.5 4.5 5-5 7.5 7.5"/>
-    </g>
-    <text x="1002" y="281" font-size="11" font-weight="500" fill="#fafafa">beach-sunset.jpg</text>
-    <text x="1002" y="297" font-size="9.5" fill="#8a8a90">3.4 MB</text>
-
-    <rect x="1070" y="326" width="100" height="34" rx="12" fill="#fafafa"/>
-    <text x="1082" y="348" font-size="11.5" fill="#18181b">Got them</text>
-
-    <rect x="988" y="404" width="80" height="20" rx="10" fill="#1c1c1e"/>
-    <text x="1028" y="418" text-anchor="middle" font-size="9" fill="#8a8a90">14:32</text>
-    </g>
-
-    <rect x="946" y="486" width="224" height="38" rx="11" fill="#1b1b1e" stroke="#2a2a2e"/>
-    <g transform="translate(954,495) scale(0.5)" fill="none" stroke="#8a8a90" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-    </g>
-    <text x="982" y="510" font-size="11" fill="#6a6a70">Send a message…</text>
-
-    <line x1="930" y1="540" x2="1186" y2="540" stroke="#242428"/>
-    <!-- bottom nav -->
-    <g transform="translate(975,545) scale(0.62)"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" fill="#fafafa"/></g>
-    <text x="984" y="581" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fafafa">Quick Drop</text>
-
-    <g transform="translate(1049,546) scale(0.62)" fill="none" stroke="#737378" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>
-      <rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
-    </g>
-    <text x="1058" y="581" text-anchor="middle" font-size="9.5" fill="#737378">Timeline</text>
-
-    <g transform="translate(1123,545) scale(0.62)" fill="none" stroke="#737378" stroke-width="2">
-      <circle cx="12" cy="12" r="6.4" stroke-dasharray="3.2 2.26"/><circle cx="12" cy="12" r="2.6"/>
-    </g>
-    <text x="1132" y="581" text-anchor="middle" font-size="9.5" fill="#737378">Manage</text>
-
-    <rect x="1030" y="632" width="56" height="4" rx="2" fill="#3a3a3e"/>
+    <rect x="922" y="44" width="272" height="668" rx="20" fill="none" stroke="#2a2a2e" stroke-width="2"/>
   </g>
 </svg>
