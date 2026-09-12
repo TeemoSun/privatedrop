@@ -6,6 +6,7 @@
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](backend/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](frontend/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 [简体中文](./README.md) | **English**
 
@@ -203,6 +204,10 @@ No. PrivateDrop is designed for personal / family use: a single password shares 
 - [Design document](docs/DESIGN.md) — architecture and implementation details (Chinese)
 - [Device model mapping guide](docs/设备型号映射更新指南.md) (Chinese)
 - [Docker image publishing](docs/Docker镜像打包上传.md) · [GitHub push workflow](docs/GitHub推送流程.md) (Chinese)
+
+## 📄 License
+
+This project is released under the [MIT License](./LICENSE) — free to use, modify and redistribute.
 
 ---
 

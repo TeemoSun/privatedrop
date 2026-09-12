@@ -6,6 +6,7 @@
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](backend/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](frontend/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 **简体中文** | [English](./README.en.md)
 
@@ -203,6 +204,10 @@ docker pull ghcr.io/teemosun/privatedrop:latest
 - [设计文档](docs/DESIGN.md) —— 架构设计与关键实现细节
 - [设备型号映射更新指南](docs/设备型号映射更新指南.md)
 - [Docker 镜像打包上传](docs/Docker镜像打包上传.md) · [GitHub 推送流程](docs/GitHub推送流程.md)
+
+## 📄 协议
+
+本项目基于 [MIT License](./LICENSE) 开源发布，欢迎自由使用、修改与二次分发。
 
 ---
 
