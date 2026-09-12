@@ -5,9 +5,11 @@ import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
 import { initTheme } from "./lib/settings";
+import { I18nProvider, applyLanguage, getSavedLanguageChoice, resolveLanguage } from "./lib/i18n";
 import "./index.css";
 
 initTheme();
+applyLanguage(resolveLanguage(getSavedLanguageChoice()));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +25,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <I18nProvider>
+          <App />
+        </I18nProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

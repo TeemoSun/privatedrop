@@ -15,6 +15,7 @@ import {
 import { api, getAccessToken } from "../lib/api";
 import { isSecretUnlocked, lockSecretSession } from "../lib/secretSession";
 import { getSendOnEnter } from "../lib/settings";
+import { useI18n, t } from "../lib/i18n";
 import { ItemCard } from "../components/ItemCard";
 import { Button } from "../components/ui/Button";
 import { EmptyState, Spinner } from "../components/ui/Misc";
@@ -44,14 +45,14 @@ function putWithProgress(
       xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     }
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.onerror = () => reject(new Error("网络错误"));
-    xhr.onabort = () => reject(new Error("已取消"));
+    xhr.onerror = () => reject(new Error(t("common.networkError")));
+    xhr.onabort = () => reject(new Error(t("common.cancelled")));
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`上传失败（HTTP ${xhr.status}）`));
+      else reject(new Error(t("board.uploadHttpError", { status: xhr.status })));
     };
     xhr.send(file);
   });
@@ -63,6 +64,7 @@ interface DropBoardProps {
 }
 
 export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardProps) {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<PendingFile[]>([]);
@@ -145,22 +147,28 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
     bottomAnchorRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  const addFiles = useCallback((incomingList: FileList | File[]) => {
-    const next = Array.from(incomingList)
-      .filter((f) => f.size > 0)
-      .map((f) => ({ file: f, progress: 0, status: "idle" as const }));
-    if (!next.length) return;
+  const addFiles = useCallback(
+    (incomingList: FileList | File[]) => {
+      const next = Array.from(incomingList)
+        .filter((f) => f.size > 0)
+        .map((f) => ({ file: f, progress: 0, status: "idle" as const }));
+      if (!next.length) return;
 
-    const oversized = next.filter((f) => f.file.size > maxFileSize);
-    if (oversized.length) {
-      setError(
-        `文件超过大小上限（${formatBytes(maxFileSize)}）：${oversized.map((f) => f.file.name).join("、")}`,
-      );
-      return;
-    }
-    setFiles((prev) => [...prev, ...next]);
-    setError(null);
-  }, []);
+      const oversized = next.filter((f) => f.file.size > maxFileSize);
+      if (oversized.length) {
+        setError(
+          t("board.fileOversized", {
+            max: formatBytes(maxFileSize),
+            names: oversized.map((f) => f.file.name).join(", "),
+          }),
+        );
+        return;
+      }
+      setFiles((prev) => [...prev, ...next]);
+      setError(null);
+    },
+    [t],
+  );
 
   // Global window drag & drop listener
   useEffect(() => {
@@ -373,7 +381,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
         await Promise.all(uploads);
 
         if (!allOk) {
-          setError("部分文件上传失败，未完成条目将在 1 小时后自动清理");
+          setError(t("board.partialUploadError"));
           return;
         }
 
@@ -394,7 +402,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
       }
     } catch (e) {
       if (e instanceof Error) {
-        setError(e.message || "发送失败");
+        setError(e.message || t("board.sendFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -436,8 +444,8 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
               <FileUp className="h-8 w-8 sm:h-10 sm:w-10 text-primary animate-bounce" />
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-lg sm:text-xl font-bold tracking-tight">拖进浏览器并松手即可上传</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">文件将添加到输入框顶部，点击发送即可上传</p>
+              <p className="text-lg sm:text-xl font-bold tracking-tight">{t("board.dragTitle")}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{t("board.dragDesc")}</p>
             </div>
           </div>
         </div>
@@ -448,8 +456,8 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
         <div className="mt-2 shrink-0 flex items-center justify-between rounded-md bg-muted/60 border px-3 py-1.5 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Lock className="h-3.5 w-3.5 text-primary" />
-            <span className="font-medium text-foreground">隐私时间线</span>
-            <span>· 仅长按入口可访问，私密保存</span>
+            <span className="font-medium text-foreground">{t("board.secretBanner")}</span>
+            <span>· {t("board.secretBannerDesc")}</span>
           </div>
         </div>
       )}
@@ -466,7 +474,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
             {loadingMore ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Spinner className="h-3.5 w-3.5" />
-                <span>加载更早内容中…</span>
+                <span>{t("board.loadingOlder")}</span>
               </div>
             ) : (
               <Button
@@ -475,7 +483,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                 onClick={loadOlder}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                ↑ 加载更早内容
+                {t("board.loadOlder")}
               </Button>
             )}
           </div>
@@ -494,17 +502,17 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
               }
               title={
                 isSecret
-                  ? "隐私时间线暂无内容"
+                  ? t("board.emptySecretTitle")
                   : isEphemeral
-                    ? "中转站空空如也"
-                    : "还没有任何内容"
+                    ? t("board.emptyEphemeralTitle")
+                    : t("board.emptyTimelineTitle")
               }
               hint={
                 isSecret
-                  ? "在此发送的笔记或文件仅在此隐私空间展示，在外部不可见"
+                  ? t("board.emptySecretHint")
                   : isEphemeral
-                    ? "在此发送的笔记或文件仅保留 24 小时，到期自动清理"
-                    : "在此发送的笔记或文件将永久保存，其他设备可随时查看"
+                    ? t("board.emptyEphemeralHint")
+                    : t("board.emptyTimelineHint")
               }
             />
           </div>
@@ -526,14 +534,14 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
         {files.length > 0 && (
           <div className="mb-2 flex flex-col gap-1.5 rounded-xl border bg-card p-2 shadow-xs">
             <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-              <span>待上传文件 ({files.length})</span>
+              <span>{t("board.pendingFiles", { count: files.length })}</span>
               {!submitting && (
                 <button
                   type="button"
                   onClick={() => setFiles([])}
                   className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
                 >
-                  清空全部
+                  {t("board.clearAll")}
                 </button>
               )}
             </div>
@@ -551,8 +559,8 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                       {f.status === "uploading" && (
                         <span className="text-[11px] tabular-nums text-primary font-medium">{f.progress}%</span>
                       )}
-                      {f.status === "done" && <span className="text-[11px] text-muted-foreground font-medium">已就绪</span>}
-                      {f.status === "error" && <span className="text-[11px] text-destructive">{f.error ?? "失败"}</span>}
+                      {f.status === "done" && <span className="text-[11px] text-muted-foreground font-medium">{t("board.fileReady")}</span>}
+                      {f.status === "error" && <span className="text-[11px] text-destructive">{f.error ?? t("board.fileFailed")}</span>}
                     </div>
                     {submitting && f.status === "uploading" && (
                       <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">
@@ -565,7 +573,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                       type="button"
                       onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
                       className="shrink-0 p-1 text-muted-foreground hover:text-foreground rounded transition-colors cursor-pointer"
-                      title="移除"
+                      title={t("board.remove")}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -584,12 +592,12 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
             {connecting ? (
               <span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium select-none">
                 <RefreshCw className="h-3 w-3 animate-spin shrink-0" />
-                正在连接实时服务…
+                {t("board.wsConnecting")}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-medium select-none">
                 <WifiOff className="h-3 w-3 shrink-0" />
-                实时连接已断开 · 点击发送键可重连
+                {t("board.wsDisconnected")}
               </span>
             )}
             {!connecting && (
@@ -598,7 +606,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                 onClick={reconnect}
                 className="text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline font-medium cursor-pointer"
               >
-                立即重连
+                {t("board.reconnectNow")}
               </button>
             )}
           </div>
@@ -626,8 +634,8 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
               value={note}
               placeholder={
                 getSendOnEnter()
-                  ? "写一条笔记，或添加文件后发送… (Enter 发送)"
-                  : "写一条笔记，或添加文件后发送…"
+                  ? t("board.inputPlaceholderEnter")
+                  : t("board.inputPlaceholderNoEnter")
               }
               onChange={(e) => setNote(e.target.value)}
               onPaste={handlePaste}
@@ -663,12 +671,12 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
                 !connected
                   ? connecting
                     ? hasContent
-                      ? "实时连接中 · 点击发送"
-                      : "实时连接中…"
+                      ? t("board.connectingSend")
+                      : t("board.connecting")
                     : hasContent
-                      ? "实时连接已断开 · 发送并重连"
-                      : "实时连接已断开 · 点击重连"
-                  : "发送"
+                      ? t("board.disconnectedSend")
+                      : t("board.disconnectedReconnect")
+                  : t("board.send")
               }
             >
               {submitting ? (
@@ -691,7 +699,7 @@ export function DropBoard({ isEphemeral = false, isSecret = false }: DropBoardPr
             disabled={submitting}
             onClick={() => fileInputRef.current?.click()}
             className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs transition-all hover:bg-accent hover:text-foreground active:scale-95 disabled:opacity-50 cursor-pointer"
-            title="添加文件"
+            title={t("board.addFile")}
           >
             <Plus className="h-5 w-5" />
           </button>

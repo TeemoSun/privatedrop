@@ -11,9 +11,10 @@ import {
 } from "lucide-react";
 
 import { api } from "../lib/api";
-import { formatDateTime, fromNow } from "../lib/format";
+import { formatDateTime, formatRemaining, fromNow } from "../lib/format";
 import type { Item } from "../lib/types";
 import { cn, formatBytes } from "../lib/utils";
+import { useI18n } from "../lib/i18n";
 import { ExpandableText } from "./ui/ExpandableText";
 
 interface ItemCardProps {
@@ -21,16 +22,8 @@ interface ItemCardProps {
   onDeleted: (id: string) => void;
 }
 
-function formatRemaining(expiresAt: string): string {
-  const diff = new Date(expiresAt).getTime() - Date.now();
-  if (diff <= 0) return "即将销毁";
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  if (hours > 0) return `剩 ${hours} 小时`;
-  return `剩 ${Math.max(1, minutes)} 分钟`;
-}
-
 export function ItemCard({ item, onDeleted }: ItemCardProps) {
+  const { t } = useI18n();
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -100,10 +93,14 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
           {item.is_ephemeral && (
             <span
               className="inline-flex items-center gap-1 rounded bg-muted/80 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground select-none"
-              title={item.expires_at ? `到期时间: ${new Date(item.expires_at).toLocaleString()}` : "24小时后自动销毁"}
+              title={
+                item.expires_at
+                  ? t("item.expiresAt", { time: new Date(item.expires_at).toLocaleString() })
+                  : t("item.expiresIn24h")
+              }
             >
               <Clock className="h-3 w-3" />
-              <span>{item.expires_at ? formatRemaining(item.expires_at) : "24h 临时"}</span>
+              <span>{item.expires_at ? formatRemaining(item.expires_at) : t("item.ephemeralBadge")}</span>
             </span>
           )}
         </div>
@@ -117,7 +114,7 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
               "flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none cursor-pointer",
               menuOpen && "bg-accent text-foreground",
             )}
-            title="更多操作"
+            title={t("item.moreActions")}
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
@@ -134,12 +131,12 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
                   {copied ? (
                     <>
                       <Check className="h-3.5 w-3.5 text-foreground" />
-                      <span className="text-foreground font-medium">已复制</span>
+                      <span className="text-foreground font-medium">{t("item.copied")}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>复制文本</span>
+                      <span>{t("item.copyText")}</span>
                     </>
                   )}
                 </button>
@@ -152,7 +149,7 @@ export function ItemCard({ item, onDeleted }: ItemCardProps) {
                 className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/10 text-left disabled:opacity-50 cursor-pointer"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span>删除</span>
+                <span>{t("item.delete")}</span>
               </button>
             </div>
           )}

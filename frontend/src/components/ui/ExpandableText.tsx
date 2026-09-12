@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "../../lib/utils";
+import { useI18n } from "../../lib/i18n";
 
 interface ExpandableTextProps {
   text: string;
@@ -16,6 +17,7 @@ export function ExpandableText({
   className,
   textClassName,
 }: ExpandableTextProps) {
+  const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isOverflowing, setIsOverflowing] = useState(false);
   const textRef = useRef<HTMLParagraphElement>(null);
@@ -77,7 +79,7 @@ export function ExpandableText({
           }}
           className="mt-1 inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline focus-visible:outline-none cursor-pointer select-none"
         >
-          <span>{isExpanded ? "收起" : "展开"}</span>
+          <span>{isExpanded ? t("common.collapse") : t("common.expand")}</span>
           {isExpanded ? (
             <ChevronUp className="h-3.5 w-3.5" />
           ) : (

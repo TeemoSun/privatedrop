@@ -6,6 +6,7 @@ import { Button } from "./ui/Button";
 import { api, clearTokens, getDeviceName } from "../lib/api";
 import { unlockSecretSession } from "../lib/secretSession";
 import { cn } from "../lib/utils";
+import { useI18n } from "../lib/i18n";
 
 function useTimelineLongPress() {
   const navigate = useNavigate();
@@ -89,6 +90,7 @@ function SidebarNav() {
   const timelineLongPress = useTimelineLongPress();
   const location = useLocation();
   const isSecret = location.pathname === "/secret";
+  const { t } = useI18n();
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -102,7 +104,7 @@ function SidebarNav() {
     <nav className="flex flex-col gap-1">
       <NavLink to="/" end className={navClass}>
         <Zap className="h-4 w-4" />
-        临时中转
+        {t("nav.ephemeral")}
       </NavLink>
       <NavLink
         to="/timeline"
@@ -110,11 +112,11 @@ function SidebarNav() {
         {...timelineLongPress}
       >
         {isSecret ? <Lock className="h-4 w-4 text-primary" /> : <LayoutDashboard className="h-4 w-4" />}
-        {isSecret ? "隐私时间线" : "时间线"}
+        {isSecret ? t("nav.secret") : t("nav.timeline")}
       </NavLink>
       <NavLink to="/manage" className={navClass}>
         <Settings className="h-4 w-4" />
-        管理
+        {t("nav.manage")}
       </NavLink>
     </nav>
   );
@@ -131,6 +133,7 @@ export function AppShell() {
   const location = useLocation();
   const isSecret = location.pathname === "/secret";
   const timelineLongPress = useTimelineLongPress();
+  const { t } = useI18n();
 
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-background">
@@ -148,7 +151,7 @@ export function AppShell() {
         <div className="border-t p-3">
           <Button variant="ghost" size="sm" className="w-full justify-start" onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
-            退出登录
+            {t("nav.logout")}
           </Button>
         </div>
       </aside>
@@ -163,7 +166,7 @@ export function AppShell() {
               {getDeviceName()}
             </span>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="退出登录">
+          <Button variant="ghost" size="icon" onClick={handleLogout} title={t("nav.logout")}>
             <LogOut className="h-4 w-4" />
           </Button>
         </header>
@@ -184,7 +187,7 @@ export function AppShell() {
             }
           >
             <Zap className="h-5 w-5" />
-            临时中转
+            {t("nav.ephemeral")}
           </NavLink>
           <NavLink
             to="/timeline"
@@ -197,7 +200,7 @@ export function AppShell() {
             {...timelineLongPress}
           >
             {isSecret ? <Lock className="h-5 w-5" /> : <LayoutDashboard className="h-5 w-5" />}
-            {isSecret ? "隐私时间线" : "时间线"}
+            {isSecret ? t("nav.secret") : t("nav.timeline")}
           </NavLink>
           <NavLink
             to="/manage"
@@ -209,7 +212,7 @@ export function AppShell() {
             }
           >
             <Settings className="h-5 w-5" />
-            管理
+            {t("nav.manage")}
           </NavLink>
         </nav>
       </div>

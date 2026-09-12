@@ -14,21 +14,23 @@ declare global {
   }
 }
 
+import { t } from "./i18n";
+
 export function parseUserAgent(ua: string): string {
-  if (!ua) return "未知设备";
+  if (!ua) return t("device.unknown");
 
   // Check iPad (including newer iPadOS reporting as Macintosh with multi-touch)
   const isIPad =
     /iPad/i.test(ua) ||
     (/Macintosh/i.test(ua) && typeof navigator !== "undefined" && (navigator.maxTouchPoints || 0) > 1);
-  if (isIPad) return "iPad";
+  if (isIPad) return t("device.ipad");
 
-  if (/iPhone/i.test(ua)) return "iPhone";
+  if (/iPhone/i.test(ua)) return t("device.iphone");
   if (/iPod/i.test(ua)) return "iPod";
 
   // HarmonyOS / OpenHarmony
-  if (/HarmonyOS/i.test(ua)) return "HarmonyOS 设备";
-  if (/OpenHarmony/i.test(ua)) return "OpenHarmony 设备";
+  if (/HarmonyOS/i.test(ua)) return t("device.harmony");
+  if (/OpenHarmony/i.test(ua)) return t("device.openHarmony");
 
   // Android
   if (/Android/i.test(ua)) {
@@ -41,27 +43,27 @@ export function parseUserAgent(ua: string): string {
         return `Android (${rawModel})`;
       }
     }
-    return "Android 设备";
+    return t("device.android");
   }
 
   // Windows
-  if (/Windows/i.test(ua)) return "Windows PC";
+  if (/Windows/i.test(ua)) return t("device.windows");
 
   // macOS
-  if (/Macintosh|Mac OS X/i.test(ua)) return "Mac";
+  if (/Macintosh|Mac OS X/i.test(ua)) return t("device.mac");
 
   // Chrome OS
-  if (/CrOS/i.test(ua)) return "Chromebook";
+  if (/CrOS/i.test(ua)) return t("device.chromebook");
 
   // Linux (non-Android)
-  if (/Linux/i.test(ua)) return "Linux PC";
+  if (/Linux/i.test(ua)) return t("device.linux");
 
-  return "未知设备";
+  return t("device.unknown");
 }
 
 export function detectDeviceNameSync(): string {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return "未知设备";
+    return t("device.unknown");
   }
 
   const saved = localStorage.getItem("pd_device_name");
@@ -72,22 +74,22 @@ export function detectDeviceNameSync(): string {
     const platform = navigator.userAgentData.platform;
     const isMobile = navigator.userAgentData.mobile;
     if (platform === "Android") {
-      return "Android 设备";
+      return t("device.android");
     }
     if (platform === "Windows") {
-      return "Windows PC";
+      return t("device.windows");
     }
     if (platform === "macOS") {
-      return "Mac";
+      return t("device.mac");
     }
     if (platform === "Linux") {
-      return isMobile ? "Android 设备" : "Linux PC";
+      return isMobile ? t("device.android") : t("device.linux");
     }
     if (platform === "iOS") {
-      return "iPhone";
+      return t("device.iphone");
     }
     if (platform === "Chrome OS") {
-      return "Chromebook";
+      return t("device.chromebook");
     }
   }
 
@@ -97,7 +99,7 @@ export function detectDeviceNameSync(): string {
 export async function resolveAndroidModelName(rawModel: string): Promise<string> {
   const model = rawModel.trim();
   if (!model || model === "K" || model === "Mobile") {
-    return "Android 设备";
+    return t("device.android");
   }
   try {
     const { default: modelMap } = await import("./android-models.json");
@@ -113,7 +115,7 @@ export async function resolveAndroidModelName(rawModel: string): Promise<string>
 
 export async function detectDeviceNameAsync(): Promise<string> {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return "未知设备";
+    return t("device.unknown");
   }
 
   const saved = localStorage.getItem("pd_device_name");
@@ -133,25 +135,25 @@ export async function detectDeviceNameAsync(): Promise<string> {
         if (model && model !== "K" && model !== "Mobile") {
           return await resolveAndroidModelName(model);
         }
-        return "Android 设备";
+        return t("device.android");
       }
       if (platform === "Windows") {
-        return "Windows PC";
+        return t("device.windows");
       }
       if (platform === "macOS") {
-        return "Mac";
+        return t("device.mac");
       }
       if (platform === "Linux") {
         if (navigator.userAgentData.mobile) {
           if (model && model !== "K" && model !== "Mobile") {
             return await resolveAndroidModelName(model);
           }
-          return "Android 设备";
+          return t("device.android");
         }
-        return "Linux PC";
+        return t("device.linux");
       }
       if (platform === "Chrome OS") {
-        return "Chromebook";
+        return t("device.chromebook");
       }
     } catch {
       // Fallback to sync detection

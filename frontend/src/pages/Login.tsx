@@ -4,12 +4,14 @@ import { useNavigate } from "react-router-dom";
 
 import { api, setDeviceName, setTokens } from "../lib/api";
 import { detectDeviceNameAsync, detectDeviceNameSync } from "../lib/device";
+import { useI18n } from "../lib/i18n";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Spinner } from "../components/ui/Misc";
 
 export function Login() {
+  const { t } = useI18n();
   const [password, setPassword] = useState("");
   const [deviceName, setDeviceNameInput] = useState(() => detectDeviceNameSync());
   const [isCustomName, setIsCustomName] = useState(false);
@@ -48,13 +50,13 @@ export function Login() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle>PrivateDrop</CardTitle>
-          <CardDescription>登录以同步你的文件与笔记</CardDescription>
+          <CardDescription>{t("login.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="flex flex-col gap-3">
             <Input
               type="text"
-              placeholder="设备名称"
+              placeholder={t("login.deviceName")}
               value={deviceName}
               maxLength={255}
               onChange={(e) => {
@@ -64,7 +66,7 @@ export function Login() {
             />
             <Input
               type="password"
-              placeholder="密码"
+              placeholder={t("login.password")}
               value={password}
               autoFocus
               onChange={(e) => setPassword(e.target.value)}
@@ -72,13 +74,13 @@ export function Login() {
             {mutation.isError && (
               <p className="text-xs text-destructive">
                 {(mutation.error as Error).message === "invalid password"
-                  ? "密码错误"
-                  : "登录失败，请稍后重试"}
+                  ? t("login.invalidPassword")
+                  : t("login.loginFailed")}
               </p>
             )}
             <Button type="submit" disabled={mutation.isPending || !password}>
               {mutation.isPending && <Spinner />}
-              登录
+              {t("login.submit")}
             </Button>
           </form>
         </CardContent>

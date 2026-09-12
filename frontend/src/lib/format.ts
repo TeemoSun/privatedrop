@@ -1,9 +1,9 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/zh-cn";
+
+import { t } from "./i18n";
 
 dayjs.extend(relativeTime);
-dayjs.locale("zh-cn");
 
 function parseDate(iso: string | Date | null | undefined): dayjs.Dayjs {
   if (!iso) return dayjs();
@@ -42,5 +42,37 @@ export function fromNow(iso: string | Date): string {
 
 export function formatDateTime(iso: string | Date): string {
   return parseDate(iso).format("YYYY-MM-DD HH:mm");
+}
+
+export function formatRemaining(expiresAt: string): string {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  if (diff <= 0) return t("item.expiringSoon");
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) return t("item.remainingHours", { hours });
+  return t("item.remainingMinutes", { minutes: Math.max(1, minutes) });
+}
+
+export function formatTrashRemaining(deletedAtStr?: string | null, isEphemeral?: boolean): string {
+  if (!deletedAtStr) return t("trash.retaining");
+  const deletedAt = new Date(deletedAtStr).getTime();
+  const ttlMs = isEphemeral ? 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+  const expiresAt = deletedAt + ttlMs;
+  const diffMs = expiresAt - Date.now();
+  if (diffMs <= 0) return t("trash.expiringSoon");
+
+  if (isEphemeral) {
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 0) return t("trash.hoursRemaining", { hours });
+    return t("trash.minutesRemaining", { minutes: Math.max(1, minutes) });
+  }
+
+  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  if (diffDays <= 1) {
+    const diffHours = Math.max(1, Math.ceil(diffMs / (60 * 60 * 1000)));
+    return t("trash.hoursRemaining", { hours: diffHours });
+  }
+  return t("trash.daysRemaining", { days: diffDays });
 }
 

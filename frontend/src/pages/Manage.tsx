@@ -8,6 +8,7 @@ import {
   CornerDownLeft,
   Database,
   File as FileIcon,
+  Globe,
   HardDrive,
   Laptop,
   LogOut,
@@ -25,36 +26,14 @@ import { Link, Route, Routes, useNavigate } from "react-router-dom";
 
 import { api, clearTokens, getDeviceId, getDeviceName, setDeviceName } from "../lib/api";
 import { getSendOnEnter, getTheme, setSendOnEnter, setTheme, type Theme } from "../lib/settings";
+import { useI18n, SUPPORTED_LANGUAGES, type LanguageChoice } from "../lib/i18n";
 import { Button } from "../components/ui/Button";
 import { Card, CardContent } from "../components/ui/Card";
 import { ExpandableText } from "../components/ui/ExpandableText";
 import { EmptyState, Spinner } from "../components/ui/Misc";
 import { formatBytes, cn } from "../lib/utils";
-import { formatDateTime, fromNow } from "../lib/format";
+import { formatDateTime, formatTrashRemaining, fromNow } from "../lib/format";
 import type { Item } from "../lib/types";
-
-function formatTrashRemaining(deletedAtStr?: string | null, isEphemeral?: boolean): string {
-  if (!deletedAtStr) return "保留中";
-  const deletedAt = new Date(deletedAtStr).getTime();
-  const ttlMs = isEphemeral ? 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
-  const expiresAt = deletedAt + ttlMs;
-  const diffMs = expiresAt - Date.now();
-  if (diffMs <= 0) return "即将彻底销毁";
-
-  if (isEphemeral) {
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    if (hours > 0) return `剩 ${hours} 小时彻底销毁`;
-    return `剩 ${Math.max(1, minutes)} 分钟彻底销毁`;
-  }
-
-  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
-  if (diffDays <= 1) {
-    const diffHours = Math.max(1, Math.ceil(diffMs / (60 * 60 * 1000)));
-    return `剩 ${diffHours} 小时彻底销毁`;
-  }
-  return `剩 ${diffDays} 天彻底销毁`;
-}
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -72,13 +51,17 @@ function ConfirmDialog({
   open,
   title,
   description,
-  confirmText = "确定",
-  cancelText = "取消",
+  confirmText,
+  cancelText,
   variant = "default",
   onConfirm,
   onCancel,
   loading = false,
 }: ConfirmDialogProps) {
+  const { t } = useI18n();
+  const cText = confirmText || t("common.confirm");
+  const cancelStr = cancelText || t("common.cancel");
+
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4 animate-in fade-in-0">
@@ -89,7 +72,7 @@ function ConfirmDialog({
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
-            {cancelText}
+            {cancelStr}
           </Button>
           <Button
             variant={variant === "destructive" ? "destructive" : "default"}
@@ -98,7 +81,7 @@ function ConfirmDialog({
             disabled={loading}
           >
             {loading ? <Spinner className="h-3.5 w-3.5 mr-1" /> : null}
-            {confirmText}
+            {cText}
           </Button>
         </div>
       </div>
@@ -123,13 +106,16 @@ function PromptDialog({
   title,
   initialValue,
   placeholder,
-  confirmText = "保存",
-  cancelText = "取消",
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   loading = false,
 }: PromptDialogProps) {
+  const { t } = useI18n();
   const [val, setVal] = useState(initialValue);
+  const cText = confirmText || t("common.save");
+  const cancelStr = cancelText || t("common.cancel");
 
   if (!open) return null;
   return (
@@ -154,7 +140,7 @@ function PromptDialog({
         />
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
-            {cancelText}
+            {cancelStr}
           </Button>
           <Button
             size="sm"
@@ -162,7 +148,7 @@ function PromptDialog({
             disabled={!val.trim() || loading}
           >
             {loading ? <Spinner className="h-3.5 w-3.5 mr-1" /> : null}
-            {confirmText}
+            {cText}
           </Button>
         </div>
       </div>
@@ -178,6 +164,7 @@ function handleLogout() {
 }
 
 function ManageMenu() {
+  const { t, languageChoice, currentLanguage, setLanguage } = useI18n();
   const { data: devices = [] } = useQuery({
     queryKey: ["devices"],
     queryFn: api.devices,
@@ -220,24 +207,26 @@ function ManageMenu() {
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-6">
       <PromptDialog
         open={showRenameDialog}
-        title="修改当前设备名称"
+        title={t("manage.renameDialogTitle")}
         initialValue={currentDevName}
-        placeholder="输入新的设备名称"
+        placeholder={t("manage.renameDialogPlaceholder")}
+        confirmText={t("common.save")}
+        cancelText={t("common.cancel")}
         loading={renaming}
         onConfirm={handleRenameCurrent}
         onCancel={() => setShowRenameDialog(false)}
       />
 
       <div>
-        <h1 className="text-xl font-bold tracking-tight">管理</h1>
+        <h1 className="text-xl font-bold tracking-tight">{t("manage.title")}</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          设备连接、回收站与系统偏好设置
+          {t("manage.subtitle")}
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase px-1">
-          通用设置
+          {t("manage.generalSection")}
         </span>
         <Card className="divide-y overflow-hidden border shadow-sm">
           <Link
@@ -249,9 +238,9 @@ function ManageMenu() {
                 <Smartphone className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-medium text-sm">设备管理</div>
+                <div className="font-medium text-sm">{t("manage.devicesTitle")}</div>
                 <div className="text-xs text-muted-foreground">
-                  已连接 {devices.length} 台设备
+                  {t("manage.devicesDesc", { count: devices.length })}
                 </div>
               </div>
             </div>
@@ -269,9 +258,9 @@ function ManageMenu() {
                 <Trash2 className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-medium text-sm">回收站</div>
+                <div className="font-medium text-sm">{t("manage.trashTitle")}</div>
                 <div className="text-xs text-muted-foreground">
-                  已删除内容保留（常规 30 天，中转站 24 小时）
+                  {t("manage.trashDesc")}
                 </div>
               </div>
             </div>
@@ -294,16 +283,16 @@ function ManageMenu() {
                 <HardDrive className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-medium text-sm">存储与索引校验</div>
+                <div className="font-medium text-sm">{t("manage.storageTitle")}</div>
                 <div className="text-xs text-muted-foreground">
-                  校验记录与物理文件一致性，清理冗余与失效文件
+                  {t("manage.storageDesc")}
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               {storageData?.status === "issues_found" && (
                 <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-medium text-rose-600 dark:text-rose-400">
-                  发现异常
+                  {t("manage.storageIssuesFound")}
                 </span>
               )}
               <ChevronRight className="h-4 w-4" />
@@ -314,7 +303,7 @@ function ManageMenu() {
 
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase px-1">
-          外观与偏好
+          {t("manage.prefSection")}
         </span>
         <Card className="divide-y overflow-hidden border shadow-sm">
           {/* 主题外观切换 */}
@@ -324,9 +313,9 @@ function ManageMenu() {
                 <SunMoon className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-medium text-sm">主题外观</div>
+                <div className="font-medium text-sm">{t("manage.themeTitle")}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  支持浅色、深色模式与跟随系统自动切换
+                  {t("manage.themeDesc")}
                 </div>
               </div>
             </div>
@@ -342,7 +331,7 @@ function ManageMenu() {
                 )}
               >
                 <Sun className="h-3.5 w-3.5" />
-                <span>浅色</span>
+                <span>{t("manage.themeLight")}</span>
               </button>
               <button
                 type="button"
@@ -355,7 +344,7 @@ function ManageMenu() {
                 )}
               >
                 <Moon className="h-3.5 w-3.5" />
-                <span>深色</span>
+                <span>{t("manage.themeDark")}</span>
               </button>
               <button
                 type="button"
@@ -368,7 +357,7 @@ function ManageMenu() {
                 )}
               >
                 <Laptop className="h-3.5 w-3.5" />
-                <span>跟随系统</span>
+                <span>{t("manage.themeSystem")}</span>
               </button>
             </div>
           </div>
@@ -380,9 +369,9 @@ function ManageMenu() {
                 <CornerDownLeft className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-medium text-sm">按 Enter 键发送</div>
+                <div className="font-medium text-sm">{t("manage.enterTitle")}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
-                  开启后按 Enter 发送、Shift+Enter 换行；关闭后按 Enter 仅换行（适合移动端输入）
+                  {t("manage.enterDesc")}
                 </div>
               </div>
             </div>
@@ -400,17 +389,48 @@ function ManageMenu() {
               <div className="h-6 w-11 rounded-full bg-input transition-colors peer-checked:bg-primary peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-background after:transition-transform after:content-[''] peer-checked:after:translate-x-full" />
             </label>
           </div>
+
+          {/* 语言选择 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+                <Globe className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-medium text-sm">{t("manage.languageTitle")}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {t("manage.languageDesc")}
+                </div>
+              </div>
+            </div>
+            <div className="shrink-0 self-start sm:self-auto">
+              <select
+                value={languageChoice}
+                onChange={(e) => setLanguage(e.target.value as LanguageChoice)}
+                className="h-9 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+              >
+                <option value="auto">
+                  {t("manage.langAuto")} ({SUPPORTED_LANGUAGES.find((l) => l.code === currentLanguage)?.nativeName || currentLanguage})
+                </option>
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.nativeName} ({lang.name})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </Card>
       </div>
 
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase px-1">
-          当前设备与账户
+          {t("manage.accountSection")}
         </span>
         <Card className="divide-y overflow-hidden border shadow-sm">
           <div className="flex items-center justify-between p-4">
             <div className="text-sm">
-              <div className="font-medium">当前设备名称</div>
+              <div className="font-medium">{t("manage.currentDeviceName")}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{currentDevName}</div>
             </div>
             <Button
@@ -419,7 +439,7 @@ function ManageMenu() {
               onClick={() => setShowRenameDialog(true)}
             >
               <Pencil className="h-3.5 w-3.5 mr-1" />
-              改名
+              {t("manage.rename")}
             </Button>
           </div>
 
@@ -432,8 +452,8 @@ function ManageMenu() {
                 <LogOut className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-medium text-sm">退出登录</div>
-                <div className="text-xs text-destructive/80">清除本机登录凭证并断开连接</div>
+                <div className="font-medium text-sm">{t("manage.logoutTitle")}</div>
+                <div className="text-xs text-destructive/80">{t("manage.logoutDesc")}</div>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-destructive/60" />
@@ -445,6 +465,7 @@ function ManageMenu() {
 }
 
 function DevicesSubPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<string | null>(null);
@@ -492,14 +513,15 @@ function DevicesSubPage() {
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-3">
       <ConfirmDialog
         open={!!deviceToDelete}
-        title="确认解绑设备"
+        title={t("devices.unbindTitle")}
         description={
           deviceToDelete?.isCurrent
-            ? "确定删除当前设备？删除后将立即退出登录。"
-            : `确定删除设备「${deviceToDelete?.name}」？该设备的登录将立即失效。`
+            ? t("devices.unbindCurrentDesc")
+            : t("devices.unbindOtherDesc", { name: deviceToDelete?.name || "" })
         }
         variant="destructive"
-        confirmText="删除"
+        confirmText={t("devices.delete")}
+        cancelText={t("common.cancel")}
         loading={deleteMutation.isPending}
         onConfirm={() => {
           if (deviceToDelete) deleteMutation.mutate(deviceToDelete.id);
@@ -515,14 +537,14 @@ function DevicesSubPage() {
           className="gap-1 -ml-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          返回管理
+          {t("devices.back")}
         </Button>
       </div>
 
       <div>
-        <h1 className="text-xl font-bold tracking-tight">设备管理</h1>
+        <h1 className="text-xl font-bold tracking-tight">{t("devices.title")}</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          查看所有使用当前密码登记的设备，支持改名或解绑
+          {t("devices.subtitle")}
         </p>
       </div>
 
@@ -533,7 +555,7 @@ function DevicesSubPage() {
       ) : sortedDevices.length === 0 ? (
         <EmptyState
           icon={<Smartphone className="h-10 w-10 text-muted-foreground" />}
-          title="还没有登记的设备"
+          title={t("devices.empty")}
         />
       ) : (
         <div className="space-y-3 mt-2">
@@ -561,10 +583,10 @@ function DevicesSubPage() {
                             renameMutation.mutate({ id: device.id, name: name.trim() })
                           }
                         >
-                          保存
+                          {t("common.save")}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                          取消
+                          {t("common.cancel")}
                         </Button>
                       </div>
                     ) : (
@@ -573,15 +595,15 @@ function DevicesSubPage() {
                           <p className="truncate font-medium">{device.name}</p>
                           {isCurrent && (
                             <span className="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                              当前设备
+                              {t("devices.currentBadge")}
                             </span>
                           )}
                         </div>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          最后在线 {formatDateTime(device.last_seen_at)}
+                          {t("devices.lastSeen", { time: formatDateTime(device.last_seen_at) })}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          登记于 {formatDateTime(device.created_at)}
+                          {t("devices.registeredAt", { time: formatDateTime(device.created_at) })}
                         </p>
                       </>
                     )}
@@ -597,7 +619,7 @@ function DevicesSubPage() {
                         }}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                        改名
+                        {t("manage.rename")}
                       </Button>
                       <Button
                         size="sm"
@@ -607,7 +629,7 @@ function DevicesSubPage() {
                           setDeviceToDelete({ id: device.id, name: device.name, isCurrent });
                         }}
                       >
-                        删除
+                        {t("devices.delete")}
                       </Button>
                     </div>
                   )}
@@ -622,6 +644,7 @@ function DevicesSubPage() {
 }
 
 function TrashSubPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [confirmEmpty, setConfirmEmpty] = useState(false);
@@ -660,10 +683,10 @@ function TrashSubPage() {
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-3">
       <ConfirmDialog
         open={confirmEmpty}
-        title="确认一键清空回收站"
-        description="确定一键清空回收站？所有内容和物理文件将被永久彻底销毁，无法找回。"
+        title={t("trash.emptyConfirmTitle")}
+        description={t("trash.emptyConfirmDesc")}
         variant="destructive"
-        confirmText="清空"
+        confirmText={t("common.clear")}
         loading={emptyMutation.isPending}
         onConfirm={() => {
           emptyMutation.mutate();
@@ -673,10 +696,10 @@ function TrashSubPage() {
 
       <ConfirmDialog
         open={!!purgeItemId}
-        title="确认彻底删除"
-        description="确定彻底删除此条目？关联的物理文件将被彻底粉碎无法恢复。"
+        title={t("trash.purgeConfirmTitle")}
+        description={t("trash.purgeConfirmDesc")}
         variant="destructive"
-        confirmText="彻底删除"
+        confirmText={t("trash.purgeBtn")}
         loading={purgeMutation.isPending}
         onConfirm={() => {
           if (purgeItemId) {
@@ -694,7 +717,7 @@ function TrashSubPage() {
           className="gap-1 -ml-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          返回管理
+          {t("trash.back")}
         </Button>
 
         {items.length > 0 && (
@@ -705,15 +728,15 @@ function TrashSubPage() {
             onClick={() => setConfirmEmpty(true)}
           >
             <Trash2 className="h-4 w-4 mr-1" />
-            清空回收站
+            {t("trash.emptyAll")}
           </Button>
         )}
       </div>
 
       <div>
-        <h1 className="text-xl font-bold tracking-tight">回收站</h1>
+        <h1 className="text-xl font-bold tracking-tight">{t("trash.title")}</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          被删除的文字与文件在此保留（常规内容 30 天，临时中转 24 小时），到期后自动彻底销毁
+          {t("trash.subtitle")}
         </p>
       </div>
 
@@ -724,8 +747,8 @@ function TrashSubPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={<Trash2 className="h-10 w-10 text-muted-foreground" />}
-          title="回收站是空的"
-          hint="在此处可以恢复误删的内容或彻底物理销毁文件"
+          title={t("trash.emptyTitle")}
+          hint={t("trash.emptyHint")}
         />
       ) : (
         <div className="space-y-3 mt-2">
@@ -735,10 +758,10 @@ function TrashSubPage() {
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-                    <span>删除于 {fromNow(item.deleted_at || item.created_at)}</span>
+                    <span>{t("trash.deletedAt", { time: fromNow(item.deleted_at || item.created_at) })}</span>
                     {item.is_ephemeral && (
                       <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        临时中转
+                        {t("trash.ephemeralBadge")}
                       </span>
                     )}
                   </div>
@@ -784,7 +807,7 @@ function TrashSubPage() {
                     className="gap-1 text-xs"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    恢复
+                    {t("trash.restoreBtn")}
                   </Button>
                   <Button
                     size="sm"
@@ -794,7 +817,7 @@ function TrashSubPage() {
                     className="gap-1 text-xs"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    彻底删除
+                    {t("trash.purgeBtn")}
                   </Button>
                 </div>
               </CardContent>
@@ -807,6 +830,7 @@ function TrashSubPage() {
 }
 
 function StorageCheckSubPage() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [fixSuccessMsg, setFixSuccessMsg] = useState<string | null>(null);
@@ -830,9 +854,11 @@ function StorageCheckSubPage() {
       queryClient.invalidateQueries({ queryKey: ["trash"] });
       setShowFixConfirm(false);
       setFixSuccessMsg(
-        `修复完成：已删除 ${result.deleted_orphan_files_count} 个多余物理文件（释放 ${formatBytes(
-          result.deleted_orphan_files_size
-        )}），已清理 ${result.deleted_broken_items_count} 条失效记录。`
+        t("storage.fixSuccess", {
+          deletedFiles: result.deleted_orphan_files_count,
+          freedSize: formatBytes(result.deleted_orphan_files_size),
+          deletedItems: result.deleted_broken_items_count,
+        })
       );
     },
   });
@@ -843,10 +869,12 @@ function StorageCheckSubPage() {
     <div className="mx-auto flex h-full w-full max-w-2xl flex-1 min-h-0 flex-col overflow-y-auto px-4 py-4 sm:py-6 gap-4">
       <ConfirmDialog
         open={showFixConfirm}
-        title="确认一键清理修复"
-        description={`检测到 ${(storageData?.missing_files.length || 0) + (storageData?.orphan_files.length || 0)} 项对不上的异常内容。\n\n确定执行一键修复？将彻底删除所有数据库无引用的多余物理文件，并清理所有磁盘文件已丢失的失效数据库记录。`}
+        title={t("storage.fixConfirmTitle")}
+        description={t("storage.fixConfirmDesc", {
+          count: (storageData?.missing_files.length || 0) + (storageData?.orphan_files.length || 0),
+        })}
         variant="destructive"
-        confirmText="一键修复"
+        confirmText={t("storage.quickFix")}
         loading={fixMutation.isPending}
         onConfirm={() => {
           setFixSuccessMsg(null);
@@ -863,7 +891,7 @@ function StorageCheckSubPage() {
           className="gap-1 -ml-2 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          返回管理
+          {t("storage.back")}
         </Button>
 
         <div className="flex items-center gap-2">
@@ -878,7 +906,7 @@ function StorageCheckSubPage() {
             className="gap-1 text-xs"
           >
             <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
-            重新校验
+            {t("storage.recheck")}
           </Button>
 
           {hasIssues && (
@@ -890,16 +918,16 @@ function StorageCheckSubPage() {
               className="gap-1 text-xs"
             >
               <Wrench className="h-3.5 w-3.5" />
-              一键清理修复
+              {t("storage.quickFix")}
             </Button>
           )}
         </div>
       </div>
 
       <div>
-        <h1 className="text-xl font-bold tracking-tight">存储与索引校验</h1>
+        <h1 className="text-xl font-bold tracking-tight">{t("storage.title")}</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
-          校验数据库记录与磁盘物理 CAS 文件的一致性，检出并清理多余或丢失的文件
+          {t("storage.subtitle")}
         </p>
       </div>
 
@@ -913,7 +941,7 @@ function StorageCheckSubPage() {
             onClick={() => setFixSuccessMsg(null)}
             className="text-muted-foreground hover:text-foreground ml-auto text-xs"
           >
-            关闭
+            {t("common.close")}
           </button>
         </div>
       )}
@@ -935,7 +963,7 @@ function StorageCheckSubPage() {
               )}
             >
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>一致性状态</span>
+                <span>{t("storage.statusConsistency")}</span>
                 {hasIssues ? (
                   <AlertTriangle className="h-4 w-4 text-rose-500" />
                 ) : (
@@ -944,41 +972,44 @@ function StorageCheckSubPage() {
               </div>
               <div className="text-base font-semibold">
                 {hasIssues ? (
-                  <span className="text-rose-600 dark:text-rose-400">发现对不上的异常</span>
+                  <span className="text-rose-600 dark:text-rose-400">{t("storage.statusAbnormal")}</span>
                 ) : (
-                  <span className="text-foreground">完全一致 (正常)</span>
+                  <span className="text-foreground">{t("storage.statusNormal")}</span>
                 )}
               </div>
               <div className="text-[11px] text-muted-foreground">
                 {hasIssues
-                  ? `${storageData.missing_files.length} 个缺失 / ${storageData.orphan_files.length} 个多余`
-                  : "索引与物理文件完全对应"}
+                  ? t("storage.issuesDetail", {
+                      missing: storageData.missing_files.length,
+                      orphan: storageData.orphan_files.length,
+                    })
+                  : t("storage.consistentDetail")}
               </div>
             </Card>
 
             <Card className="border shadow-sm p-3.5 flex flex-col justify-between gap-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>数据库记录</span>
+                <span>{t("storage.dbRecords")}</span>
                 <Database className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-base font-semibold">
-                {storageData.total_db_files} 个文件
+                {t("storage.dbFilesCount", { count: storageData.total_db_files })}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                共 {storageData.total_db_items} 条条目记录
+                {t("storage.dbItemsCount", { count: storageData.total_db_items })}
               </div>
             </Card>
 
             <Card className="border shadow-sm p-3.5 flex flex-col justify-between gap-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>磁盘物理存储</span>
+                <span>{t("storage.diskStorage")}</span>
                 <HardDrive className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-base font-semibold">
                 {formatBytes(storageData.total_disk_size)}
               </div>
               <div className="text-[11px] text-muted-foreground">
-                共 {storageData.total_disk_files} 个磁盘 CAS 文件
+                {t("storage.diskFilesCount", { count: storageData.total_disk_files })}
               </div>
             </Card>
           </div>
@@ -990,9 +1021,9 @@ function StorageCheckSubPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
-                <h3 className="font-semibold text-sm">存储与索引状态健康</h3>
+                <h3 className="font-semibold text-sm">{t("storage.healthyTitle")}</h3>
                 <p className="text-xs text-muted-foreground max-w-sm">
-                  所有数据库记录与磁盘上的物理 CAS 文件均完全匹配，未发现文件丢失或多余孤立文件。
+                  {t("storage.healthyDesc")}
                 </p>
               </div>
             </Card>
@@ -1004,11 +1035,11 @@ function StorageCheckSubPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5" />
-                      缺失物理文件的失效记录 ({storageData.missing_files.length})
+                      {t("storage.missingTitle", { count: storageData.missing_files.length })}
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    数据库中存在以下记录，但磁盘对应文件已不存在（无法下载）。修复时将自动删除这些失效记录。
+                    {t("storage.missingDesc")}
                   </p>
                   <div className="space-y-2">
                     {storageData.missing_files.map((file) => (
@@ -1025,7 +1056,7 @@ function StorageCheckSubPage() {
                           </div>
                           {file.item_note && (
                             <p className="text-muted-foreground text-[11px] line-clamp-1">
-                              备注: {file.item_note}
+                              {t("storage.notePrefix", { note: file.item_note })}
                             </p>
                           )}
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap pt-0.5">
@@ -1034,21 +1065,21 @@ function StorageCheckSubPage() {
                             </span>
                             {file.item_is_ephemeral && (
                               <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-                                临时中转
+                                {t("nav.ephemeral")}
                               </span>
                             )}
                             {file.item_is_secret && (
                               <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-                                隐私时间线
+                                {t("nav.secret")}
                               </span>
                             )}
                             {file.item_deleted_at && (
                               <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-rose-600 dark:text-rose-400">
-                                回收站中
+                                {t("storage.inTrash")}
                               </span>
                             )}
                             <span className="ml-auto">
-                              创建于 {formatDateTime(file.item_created_at)}
+                              {t("storage.createdAt", { time: formatDateTime(file.item_created_at) })}
                             </span>
                           </div>
                         </CardContent>
@@ -1064,17 +1095,18 @@ function StorageCheckSubPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                       <HardDrive className="h-3.5 w-3.5" />
-                      数据库无记录的多余物理文件 ({storageData.orphan_files.length})
+                      {t("storage.orphanTitle", { count: storageData.orphan_files.length })}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      总大小:{" "}
-                      {formatBytes(
-                        storageData.orphan_files.reduce((acc, f) => acc + f.size, 0)
-                      )}
+                      {t("storage.orphanTotalSize", {
+                        size: formatBytes(
+                          storageData.orphan_files.reduce((acc, f) => acc + f.size, 0)
+                        ),
+                      })}
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    磁盘上存在以下物理文件，但没有任何数据库条目引用。修复时将直接从磁盘物理删除以释放存储空间。
+                    {t("storage.orphanDesc")}
                   </p>
                   <div className="space-y-2">
                     {storageData.orphan_files.map((file) => (
