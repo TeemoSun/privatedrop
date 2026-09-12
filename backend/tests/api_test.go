@@ -74,6 +74,7 @@ func setupTest(t *testing.T) *testEnv {
 		Port:                "8000",
 		TrustedProxies:      "127.0.0.1,::1",
 	}
+	cfg.ParseTrustedProxies()
 
 	pwdHash, err := security.HashPassword(testPassword)
 	if err != nil {
@@ -841,26 +842,60 @@ func TestStorageCheckAndFix(t *testing.T) {
 	}
 }
 
-// 17. Test WS Invalid Token Closes With 4401
-func TestWSInvalidTokenClosesWith4401(t *testing.T) {
+// 17. Test WS auth: token delivered via first message, invalid token closes with 4401
+func TestWSAuthFlow(t *testing.T) {
 	env := setupTest(t)
 
-	wsURL := "ws" + strings.TrimPrefix(env.server.URL, "http") + "/api/ws?token=invalid-token"
+	wsURL := "ws" + strings.TrimPrefix(env.server.URL, "http") + "/api/ws"
 	u, _ := url.Parse(wsURL)
 
-	conn, resp, err := websocket.DefaultDialer.Dial(u.String(), nil)
-	if err == nil {
-		defer conn.Close()
-		_, _, readErr := conn.ReadMessage()
-		if closeErr, ok := readErr.(*websocket.CloseError); ok {
-			if closeErr.Code != 4401 {
-				t.Fatalf("expected close code 4401, got %d", closeErr.Code)
-			}
-		} else {
-			t.Fatalf("expected websocket close error with 4401, got %v", readErr)
+	// 17a. Invalid auth message -> close 4401
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		t.Fatalf("ws dial failed: %v", err)
+	}
+	_ = conn.WriteJSON(map[string]string{"type": "auth", "token": "invalid-token"})
+	_, _, readErr := conn.ReadMessage()
+	if closeErr, ok := readErr.(*websocket.CloseError); ok {
+		if closeErr.Code != 4401 {
+			t.Fatalf("expected close code 4401, got %d", closeErr.Code)
 		}
-	} else if resp != nil && resp.StatusCode != 101 {
-		t.Fatalf("unexpected ws response: %v, status: %d", err, resp.StatusCode)
+	} else {
+		t.Fatalf("expected websocket close error with 4401, got %v", readErr)
+	}
+	conn.Close()
+
+	// 17b. Valid auth message -> heartbeat ping/pong works
+	_, token, _ := loginHelper(t, env.server)
+	conn2, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		t.Fatalf("ws dial failed: %v", err)
+	}
+	defer conn2.Close()
+	if err := conn2.WriteJSON(map[string]string{"type": "auth", "token": token}); err != nil {
+		t.Fatalf("failed to send auth message: %v", err)
+	}
+	if err := conn2.WriteMessage(websocket.TextMessage, []byte("ping")); err != nil {
+		t.Fatalf("failed to send ping: %v", err)
+	}
+	_ = conn2.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_, msg, err := conn2.ReadMessage()
+	if err != nil {
+		t.Fatalf("failed to read pong: %v", err)
+	}
+	if string(msg) != "pong" {
+		t.Fatalf("expected pong, got %q", string(msg))
+	}
+
+	// 17c. No auth message within deadline -> connection closed
+	conn3, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		t.Fatalf("ws dial failed: %v", err)
+	}
+	defer conn3.Close()
+	_ = conn3.SetReadDeadline(time.Now().Add(15 * time.Second))
+	if _, _, err := conn3.ReadMessage(); err == nil {
+		t.Fatal("expected connection to be closed when no auth message arrives")
 	}
 }
 
@@ -894,6 +929,65 @@ func TestLoginRateLimiting(t *testing.T) {
 		t.Fatalf("expected 429 on 6th attempt, got %d", resp.StatusCode)
 	}
 	resp.Body.Close()
+}
+
+// 18b. Spoofed X-Forwarded-For must not bypass the login rate limit: the
+// httptest peer (127.0.0.1) is a trusted proxy, and a well-behaved proxy
+// appends the real client IP, so "spoofed-N, 9.9.9.9" must resolve to 9.9.9.9.
+func TestLoginRateLimitingResistsXFFSpoof(t *testing.T) {
+	env := setupTest(t)
+
+	attempt := func(spoofed string) int {
+		body := models.LoginRequest{
+			Password:   "wrong",
+			DeviceID:   uuid.New(),
+			DeviceName: "xff-spoof",
+		}
+		data, _ := json.Marshal(body)
+		req, _ := http.NewRequest("POST", env.server.URL+"/api/auth/login", bytes.NewReader(data))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Forwarded-For", spoofed+", 9.9.9.9")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("login request failed: %v", err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	for i := 0; i < 5; i++ {
+		if code := attempt(fmt.Sprintf("1.2.3.%d", i+1)); code != http.StatusUnauthorized {
+			t.Fatalf("expected 401 on spoofed attempt %d, got %d", i+1, code)
+		}
+	}
+	if code := attempt("1.2.3.99"); code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 after 5 attempts despite XFF spoofing, got %d", code)
+	}
+}
+
+// 18c. Security response headers present on all responses.
+func TestSecurityHeaders(t *testing.T) {
+	env := setupTest(t)
+
+	resp, err := http.Get(env.server.URL + "/healthz")
+	if err != nil {
+		t.Fatalf("healthz request failed: %v", err)
+	}
+	resp.Body.Close()
+
+	checks := map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options":        "SAMEORIGIN",
+		"Referrer-Policy":        "no-referrer",
+	}
+	for header, want := range checks {
+		if got := resp.Header.Get(header); got != want {
+			t.Fatalf("expected %s: %q, got %q", header, want, got)
+		}
+	}
+	if csp := resp.Header.Get("Content-Security-Policy"); !strings.Contains(csp, "script-src 'self'") {
+		t.Fatalf("expected CSP with script-src 'self', got %q", csp)
+	}
 }
 
 // 19. Test Oversized Upload Stream Aborts Early

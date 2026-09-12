@@ -56,8 +56,15 @@ func Load() (*Config, error) {
 	// Clean and normalize database URL
 	cfg.DatabaseURL = NormalizeDatabaseURL(cfg.DatabaseURL)
 
-	// Parse trusted proxies
-	for _, raw := range cfg.TrustedProxyList() {
+	cfg.ParseTrustedProxies()
+
+	return cfg, nil
+}
+
+// ParseTrustedProxies parses the TrustedProxies field into networks/IPs.
+// Split from Load so tests assembling a Config manually get identical behavior.
+func (c *Config) ParseTrustedProxies() {
+	for _, raw := range c.TrustedProxyList() {
 		raw = strings.TrimSpace(raw)
 		if raw == "" {
 			continue
@@ -65,17 +72,15 @@ func Load() (*Config, error) {
 		if strings.Contains(raw, "/") {
 			_, ipNet, err := net.ParseCIDR(raw)
 			if err == nil {
-				cfg.TrustedProxyNetworks = append(cfg.TrustedProxyNetworks, ipNet)
+				c.TrustedProxyNetworks = append(c.TrustedProxyNetworks, ipNet)
 			}
 		} else {
 			ip := net.ParseIP(raw)
 			if ip != nil {
-				cfg.TrustedProxyIPs = append(cfg.TrustedProxyIPs, ip)
+				c.TrustedProxyIPs = append(c.TrustedProxyIPs, ip)
 			}
 		}
 	}
-
-	return cfg, nil
 }
 
 func (c *Config) ValidateSecrets() error {

@@ -96,12 +96,17 @@ export function WsProvider({ children }: { children: React.ReactNode }) {
     setConnecting(true);
 
     try {
+      // 不再通过 URL query 传递 token（会泄漏到代理访问日志/浏览器历史），
+      // 改为连接建立后发送首条认证消息。
       const ws = new WebSocket(
-        `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws?token=${encodeURIComponent(token)}`
+        `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/ws`,
       );
       wsRef.current = ws;
 
       ws.onopen = () => {
+        try {
+          ws.send(JSON.stringify({ type: "auth", token }));
+        } catch {}
         setConnected(true);
         setConnecting(false);
         retryDelayRef.current = 1_000;

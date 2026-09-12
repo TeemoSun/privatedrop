@@ -768,6 +768,12 @@ func (h *ItemsHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mimeType := dropFile.MimeType
+	mimeType = strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, mimeType)
 	if mimeType == "" {
 		mimeType = mime.TypeByExtension(filepath.Ext(dropFile.FileName))
 		if mimeType == "" {
@@ -776,10 +782,47 @@ func (h *ItemsHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", mimeType)
 
-	safeFileName := strings.ReplaceAll(filepath.Base(dropFile.FileName), "\"", "_")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeFileName))
+	w.Header().Set("Content-Disposition", contentDisposition(dropFile.FileName))
 
 	http.ServeContent(w, r, dropFile.FileName, fi.ModTime(), f)
+}
+
+// contentDisposition builds an attachment header with a sanitized ASCII
+// fallback plus an RFC 5987 encoded name for non-ASCII filenames.
+func contentDisposition(fileName string) string {
+	base := filepath.Base(fileName)
+	var ascii strings.Builder
+	for _, r := range base {
+		switch {
+		case r < 0x20 || r == 0x7f, r == '"', r == '\\':
+			ascii.WriteByte('_')
+		case r > 0x7e:
+			ascii.WriteByte('_')
+		default:
+			ascii.WriteRune(r)
+		}
+	}
+	safe := ascii.String()
+	disp := fmt.Sprintf(`attachment; filename="%s"`, safe)
+	if safe != base {
+		disp += "; filename*=UTF-8''" + rfc5987Encode(base)
+	}
+	return disp
+}
+
+func rfc5987Encode(s string) string {
+	const attrChar = "!#$&+-.^_`|~"
+	var b strings.Builder
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+			strings.IndexByte(attrChar, c) >= 0 {
+			b.WriteByte(c)
+		} else {
+			fmt.Fprintf(&b, "%%%02X", c)
+		}
+	}
+	return b.String()
 }
 
 func (h *ItemsHandler) Delete(w http.ResponseWriter, r *http.Request) {

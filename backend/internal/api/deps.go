@@ -92,6 +92,10 @@ func GetAuth(r *http.Request) (uuid.UUID, string, bool) {
 	return uuid.Nil, "", false
 }
 
+// ClientIP resolves the real client IP. X-Forwarded-For entries are walked
+// from right to left, skipping trusted proxies, and the first untrusted hop
+// wins: the leftmost XFF value is client-controlled and must never be used,
+// otherwise the login rate limit can be bypassed by spoofing it.
 func ClientIP(r *http.Request, cfg *config.Config) string {
 	remoteHost, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -106,13 +110,20 @@ func ClientIP(r *http.Request, cfg *config.Config) string {
 		forwarded := r.Header.Get("X-Forwarded-For")
 		if forwarded != "" {
 			parts := strings.Split(forwarded, ",")
-			candidate := strings.TrimSpace(parts[0])
-			if candidate != "" {
+			for i := len(parts) - 1; i >= 0; i-- {
+				candidate := strings.TrimSpace(parts[i])
+				if candidate == "" {
+					continue
+				}
+				if cfg.IsTrustedProxy(candidate) {
+					continue
+				}
 				return candidate
 			}
+			// Every XFF entry is a trusted proxy: fall through to remote host.
 		}
 		realIP := strings.TrimSpace(r.Header.Get("X-Real-IP"))
-		if realIP != "" {
+		if realIP != "" && !cfg.IsTrustedProxy(realIP) {
 			return realIP
 		}
 	}

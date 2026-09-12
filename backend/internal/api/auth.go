@@ -116,10 +116,16 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	newJTI := uuid.New()
 
-	updQuery := "UPDATE devices SET last_seen_at = $1, refresh_jti = $2 WHERE id = $3"
-	_, updErr := h.db.ExecContext(r.Context(), updQuery, now, newJTI.String(), deviceID.String())
+	// Rotate atomically: matching on the current JTI guarantees a replayed
+	// refresh token loses the race instead of minting a second token pair.
+	updQuery := "UPDATE devices SET last_seen_at = $1, refresh_jti = $2 WHERE id = $3 AND refresh_jti = $4"
+	res, updErr := h.db.ExecContext(r.Context(), updQuery, now, newJTI.String(), deviceID.String(), jti.String())
 	if updErr != nil {
 		WriteError(w, http.StatusInternalServerError, "failed to update refresh token")
+		return
+	}
+	if rows, _ := res.RowsAffected(); rows == 0 {
+		WriteError(w, http.StatusUnauthorized, "refresh token revoked")
 		return
 	}
 

@@ -26,11 +26,11 @@
 ## 本地开发
 
 ```bash
-# 环境准备：后端用 Go（>=1.23，命令在 backend/ 下执行，配置自动向上查找根目录 .env）
+# 环境准备：后端用 Go（>=1.25，命令在 backend/ 下执行，配置自动向上查找根目录 .env）
 cd backend
 go run ./cmd/server                      # 启动后端（端口 8000）
 
-# 联调依赖（PostgreSQL，带宿主端口映射；默认密码见 compose.dev.yaml）
+# 联调依赖（PostgreSQL，仅绑定 127.0.0.1:5432；默认密码见 compose.dev.yaml）
 docker compose -f compose.dev.yaml up -d db
 
 # 前端（Node 20+，frontend/ 下）
@@ -77,8 +77,11 @@ bash scripts/docker-push.sh   # 打包并推送 GHCR，流程见 docs/Docker镜�
     2. **回收站 30 天到期清理**：扫描 `deleted_at <= now - 30d` 的条目，物理删除 DB 记录并回收物理文件。
     3. **草稿与孤儿碎片清理**：清理超过 4×URL TTL 的未完成文件上传草稿及临时碎片文件。
     4. **撤销 JTI 过期清理**：清理过期的已撤销 access token JTI 记录。
-- **认证**：单密码单用户，JWT 双 token（access 15min / refresh 30 天轮换）。登出吊销：refresh 吊销走 DB 字段 `Device.refresh_jti`（重启不失效），access 吊销走内存 jti 集合（重启失效）；前端 WS 收到 4401 会先刷新 token 再重连。登录限流 5 次/分/IP（安全代理提取客户端 IP，防止 XFF 伪造绕过）。
+- **认证**：单密码单用户，JWT 双 token（access 15min / refresh 30 天轮换）。登出吊销：refresh 吊销走 DB 字段 `Device.refresh_jti`（重启不失效），access 吊销走内存 jti 集合（重启失效）；前端 WS 收到 4401 会先刷新 token 再重连。登录限流 5 次/分/IP（`internal/api/deps.go: ClientIP` 从右向左取 XFF 第一个不可信跳转，杜绝伪造最左值绕过限流）。refresh 轮换为条件 UPDATE（`WHERE refresh_jti = 旧值`），并发重放必败。
+- **WS 认证**：连接 `/api/ws` 后必须在 10s 内发送首条消息 `{"type":"auth","token":"<access token>"}`，校验失败/超时即以 4401 关闭；token 不进 URL（防泄漏到代理日志/浏览器历史）。
+- **安全响应头**：`internal/api/router.go: securityHeaders` 中间件对所有响应注入 CSP（`script-src 'self'`，主题预置脚本因此外置为 `frontend/public/theme-init.js`，禁止在 index.html 写内联脚本）、`nosniff`、`X-Frame-Options`、`Referrer-Policy: no-referrer` 与 HSTS。
 - **SPA**：当静态资源目录（`/app/static` 或环境变量 `STATIC_PATH`）存在时自动挂载 SPA，对非 `/api` 请求回退 `index.html`（深链刷新不 404）；内置路径防穿越检查；`/healthz` 为公开健康检查端点（带 `-healthcheck` CLI 标志）。
+- **容器安全**：运行时镜像以非 root 用户 `app`（uid 1000）运行，`scripts/docker-entrypoint.sh` 启动时以 root 修正数据卷属主后经 `su-exec` 降权；升级旧部署首次启动自动 chown，无需手工干预。
 - **实时同步**：WS 广播为高效的 Hub + Client Pump 模式，消除并发写竞态；断线重连后前端游标拉增量兜底。
 - **前端产物**：`frontend/dist/` 与后端静态目录均 gitignored；镜像由 Dockerfile 多阶段构建注入。
 

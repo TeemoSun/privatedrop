@@ -17,19 +17,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>PrivateDrop</title>
-    <script>
-      (function() {
-        try {
-          var theme = localStorage.getItem('pd_theme') || 'system';
-          var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          if (isDark) {
-            document.documentElement.classList.add('dark');
-            var meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.setAttribute('content', '#101010');
-          }
-        } catch (_) {}
-      })();
-    </script>
+    <!-- 主题预置脚本外置（CSP script-src 'self' 下内联脚本会被拦截），同步阻塞执行以避免暗色主题闪白 -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

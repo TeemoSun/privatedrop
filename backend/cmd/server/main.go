@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -38,6 +39,9 @@ func main() {
 
 	if err := cfg.ValidateSecrets(); err != nil {
 		log.Fatalf("%v", err)
+	}
+	if len(strings.TrimSpace(cfg.AppPassword)) < 10 {
+		log.Printf("WARNING: APP_PASSWORD is shorter than 10 characters, brute-force resistance is reduced; consider a longer passphrase")
 	}
 
 	storageMgr := storage.NewStorageManager(

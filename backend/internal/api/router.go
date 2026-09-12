@@ -26,6 +26,27 @@ type Server struct {
 	Router      chi.Router
 }
 
+// securityHeaders adds baseline hardening headers to every response. The CSP
+// allows ws:/wss: scheme-wide in connect-src because 'self' alone does not
+// cover WebSocket schemes on older browsers.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "SAMEORIGIN")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		h.Set("Content-Security-Policy",
+			"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "+
+				"img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:; "+
+				"manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; "+
+				"frame-ancestors 'none'")
+		// Ignored by browsers on plain HTTP; only enforced once TLS is in front.
+		h.Set("Strict-Transport-Security", "max-age=31536000")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func NewServer(
 	cfg *config.Config,
 	db *database.DB,
@@ -53,6 +74,7 @@ func (s *Server) setupRoutes() {
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
+	r.Use(securityHeaders)
 
 	// CORS
 	corsOrigins := s.cfg.CORSOriginList()
@@ -78,15 +100,10 @@ func (s *Server) setupRoutes() {
 
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
-		// WS
+		// WS: token is authenticated via the first message after upgrade so it
+		// never appears in URLs, proxy logs or browser history.
 		r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
-			token := r.URL.Query().Get("token")
-			deviceID, _, err := s.sec.DecodeAccessToken(token)
-			if err != nil {
-				_ = ws.CloseUnauthorized(w, r)
-				return
-			}
-			_ = s.wsManager.HandleConnection(w, r, deviceID)
+			_ = s.wsManager.HandleConnection(w, r, s.sec.DecodeAccessToken)
 		})
 
 		// Auth

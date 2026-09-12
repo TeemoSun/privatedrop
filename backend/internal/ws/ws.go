@@ -16,7 +16,17 @@ const (
 	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512 * 1024
 	sendBufferSize = 64
+	authWait       = 10 * time.Second
+	maxAuthMessage = 16 * 1024
 )
+
+type wsAuthMessage struct {
+	Type  string `json:"type"`
+	Token string `json:"token"`
+}
+
+// TokenDecoder validates an access token and returns the device ID.
+type TokenDecoder func(token string) (uuid.UUID, string, error)
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -75,25 +85,49 @@ func (m *ConnectionManager) Broadcast(event interface{}) {
 	}
 }
 
-func CloseUnauthorized(w http.ResponseWriter, r *http.Request) error {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
+func closeUnauthorized(conn *websocket.Conn) {
 	cm := websocket.FormatCloseMessage(4401, "invalid token")
 	_ = conn.WriteControl(websocket.CloseMessage, cm, time.Now().Add(writeWait))
-	// Brief pause to allow the TCP stack to flush close frame before close
 	time.Sleep(10 * time.Millisecond)
-	return nil
+	_ = conn.Close()
 }
 
-func (m *ConnectionManager) HandleConnection(w http.ResponseWriter, r *http.Request, deviceID uuid.UUID) error {
+// HandleConnection upgrades the socket and then authenticates it via the
+// first message ({"type":"auth","token":...}). Passing the token in the URL
+// query would leak it into proxy access logs and browser history.
+func (m *ConnectionManager) HandleConnection(w http.ResponseWriter, r *http.Request, decodeToken TokenDecoder) error {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return err
 	}
+
+	if decodeToken == nil {
+		closeUnauthorized(conn)
+		return nil
+	}
+
+	conn.SetReadLimit(maxAuthMessage)
+	_ = conn.SetReadDeadline(time.Now().Add(authWait))
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		_ = conn.Close()
+		return err
+	}
+
+	var authMsg wsAuthMessage
+	if err := json.Unmarshal(msg, &authMsg); err != nil || authMsg.Type != "auth" {
+		closeUnauthorized(conn)
+		return nil
+	}
+
+	deviceID, _, err := decodeToken(authMsg.Token)
+	if err != nil || deviceID == uuid.Nil {
+		closeUnauthorized(conn)
+		return nil
+	}
+
+	_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetReadLimit(maxMessageSize)
 
 	c := &client{
 		manager:  m,
