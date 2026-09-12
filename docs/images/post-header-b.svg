@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC','Segoe UI',system-ui,Arial,sans-serif">
+  <defs>
+    <radialGradient id="edge-b" cx="161.8" cy="68.9" r="95.4" gradientTransform="matrix(1 0 0 -.95 0 248.8)" gradientUnits="userSpaceOnUse"><stop offset=".7" stop-opacity="0"/><stop offset=".9" stop-opacity=".5"/><stop offset="1"/></radialGradient>
+    <radialGradient id="edge-d" cx="-340.3" cy="63" r="143.2" gradientTransform="matrix(.15 -.99 -.8 -.12 176.6 -125.4)" gradientUnits="userSpaceOnUse"><stop offset=".8" stop-opacity="0"/><stop offset=".9" stop-opacity=".5"/><stop offset="1"/></radialGradient>
+    <radialGradient id="edge-e" cx="113.4" cy="570.2" r="202.4" gradientTransform="matrix(-.04 1 2.13 .08 -1179.5 -106.7)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#35c1f1"/><stop offset=".1" stop-color="#34c1ed"/><stop offset=".2" stop-color="#2fc2df"/><stop offset=".3" stop-color="#2bc3d2"/><stop offset=".7" stop-color="#36c752"/></radialGradient>
+    <radialGradient id="edge-f" cx="376.5" cy="568" r="97.3" gradientTransform="matrix(.28 .96 .78 -.23 -303.8 -148.5)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#66eb6e"/><stop offset="1" stop-color="#66eb6e" stop-opacity="0"/></radialGradient>
+    <linearGradient id="edge-a" x1="63.3" y1="84" x2="241.7" y2="84" gradientTransform="matrix(1 0 0 -1 0 266)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0c59a4"/><stop offset="1" stop-color="#114a8b"/></linearGradient>
+    <linearGradient id="edge-c" x1="157.3" y1="161.4" x2="46" y2="40.1" gradientTransform="matrix(1 0 0 -1 0 266)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1b9de2"/><stop offset=".2" stop-color="#1595df"/><stop offset=".7" stop-color="#0680d7"/><stop offset="1" stop-color="#0078d4"/></linearGradient>
+  </defs>
+
+  <rect width="1080" height="1080" rx="18" fill="#faf9f5"/>
+  <rect x="80" y="80" width="920" height="920" rx="4" fill="none" stroke="#d6d3d1" stroke-width="2.5"/>
+  <rect x="96" y="96" width="888" height="888" rx="2" fill="none" stroke="#e7e5e0" stroke-width="1.5"/>
+
+  <!-- Microsoft Edge 官方 logo（Wikimedia Commons, 2019） -->
+  <g transform="translate(496,150) scale(0.34375)">
+    <path d="M235.7 195.5a93.7 93.7 0 0 1-10.6 4.7 101.9 101.9 0 0 1-35.9 6.4c-47.3 0-88.5-32.5-88.5-74.3a31.5 31.5 0 0 1 16.4-27.3c-42.8 1.8-53.8 46.4-53.8 72.5 0 74 68.1 81.4 82.8 81.4 7.9 0 19.8-2.3 27-4.6l1.3-.4a128.3 128.3 0 0 0 66.6-52.8 4 4 0 0 0-5.3-5.6Z" transform="translate(-4.6 -5)" style="fill:url(#edge-a)"/>
+    <path d="M235.7 195.5a93.7 93.7 0 0 1-10.6 4.7 101.9 101.9 0 0 1-35.9 6.4c-47.3 0-88.5-32.5-88.5-74.3a31.5 31.5 0 0 1 16.4-27.3c-42.8 1.8-53.8 46.4-53.8 72.5 0 74 68.1 81.4 82.8 81.4 7.9 0 19.8-2.3 27-4.6l1.3-.4a128.3 128.3 0 0 0 66.6-52.8 4 4 0 0 0-5.3-5.6Z" transform="translate(-4.6 -5)" style="isolation:isolate;opacity:.35;fill:url(#edge-b)"/>
+    <path d="M110.3 246.3A79.2 79.2 0 0 1 87.6 225a80.7 80.7 0 0 1 29.5-120c3.2-1.5 8.5-4.1 15.6-4a32.4 32.4 0 0 1 25.7 13 31.9 31.9 0 0 1 6.3 18.7c0-.2 24.5-79.6-80-79.6-43.9 0-80 41.6-80 78.2a130.2 130.2 0 0 0 12.1 56 128 128 0 0 0 156.4 67 75.5 75.5 0 0 1-62.8-8Z" transform="translate(-4.6 -5)" style="fill:url(#edge-c)"/>
+    <path d="M110.3 246.3A79.2 79.2 0 0 1 87.6 225a80.7 80.7 0 0 1 29.5-120c3.2-1.5 8.5-4.1 15.6-4a32.4 32.4 0 0 1 25.7 13 31.9 31.9 0 0 1 6.3 18.7c0-.2 24.5-79.6-80-79.6-43.9 0-80 41.6-80 78.2a130.2 130.2 0 0 0 12.1 56 128 128 0 0 0 156.4 67 75.5 75.5 0 0 1-62.8-8Z" transform="translate(-4.6 -5)" style="opacity:.41;fill:url(#edge-d);isolation:isolate"/>
+    <path d="M157 153.8c-.9 1-3.4 2.5-3.4 5.6 0 2.6 1.7 5.2 4.8 7.3 14.3 10 41.4 8.6 41.5 8.6a59.6 59.6 0 0 0 30.3-8.3 61.4 61.4 0 0 0 30.4-52.9c.3-22.4-8-37.3-11.3-43.9C228 28.8 182.3 5 132.6 5a128 128 0 0 0-128 126.2c.5-36.5 36.8-66 80-66 3.5 0 23.5.3 42 10a72.6 72.6 0 0 1 30.9 29.3c6.1 10.6 7.2 24.1 7.2 29.5s-2.7 13.3-7.8 19.9Z" transform="translate(-4.6 -5)" style="fill:url(#edge-e)"/>
+    <path d="M157 153.8c-.9 1-3.4 2.5-3.4 5.6 0 2.6 1.7 5.2 4.8 7.3 14.3 10 41.4 8.6 41.5 8.6a59.6 59.6 0 0 0 30.3-8.3 61.4 61.4 0 0 0 30.4-52.9c.3-22.4-8-37.3-11.3-43.9C228 28.8 182.3 5 132.6 5a128 128 0 0 0-128 126.2c.5-36.5 36.8-66 80-66 3.5 0 23.5.3 42 10a72.6 72.6 0 0 1 30.9 29.3c6.1 10.6 7.2 24.1 7.2 29.5s-2.7 13.3-7.8 19.9Z" transform="translate(-4.6 -5)" style="fill:url(#edge-f)"/>
+  </g>
+
+  <text x="540" y="330" text-anchor="middle" font-size="80" font-weight="700" letter-spacing="-1" fill="#1c1917">Edge Drop</text>
+  <line x1="340" y1="296" x2="740" y2="296" stroke="#1c1917" stroke-width="4"/>
+
+  <g transform="rotate(-12 540 430)">
+    <rect x="410" y="392" width="260" height="76" rx="8" fill="none" stroke="#dc2626" stroke-width="4"/>
+    <rect x="418" y="400" width="244" height="60" rx="5" fill="none" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="540" y="443" text-anchor="middle" font-size="38" font-weight="700" letter-spacing="6" fill="#dc2626">已退役</text>
+  </g>
+
+  <line x1="400" y1="548" x2="520" y2="548" stroke="#d6d3d1" stroke-width="2"/>
+  <rect x="536" y="544" width="8" height="8" transform="rotate(45 540 548)" fill="#d6d3d1"/>
+  <line x1="560" y1="548" x2="680" y2="548" stroke="#d6d3d1" stroke-width="2"/>
+
+  <g transform="translate(477.5,585) scale(0.244140625)">
+    <rect x="32" y="32" width="448" height="448" rx="108" fill="#18181B"/>
+    <rect x="32" y="32" width="448" height="448" rx="108" fill="none" stroke="#27272A" stroke-width="4"/>
+    <g fill="none" stroke="#F4F4F5" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 256 138 V 282"/>
+      <path d="M 202 192 L 256 138 L 310 192"/>
+      <path d="M 204 218 H 182 C 168 218 156 230 156 244 V 346 C 156 360 168 372 182 372 H 330 C 344 372 356 360 356 346 V 244 C 356 230 344 218 330 218 H 308"/>
+    </g>
+  </g>
+
+  <text x="540" y="795" text-anchor="middle" font-size="78" font-weight="700" letter-spacing="-1" fill="#1c1917">PrivateDrop</text>
+
+  <text x="540" y="852" text-anchor="middle" font-size="23" fill="#57534e">实时同步 · 数据自控 · Docker 一键部署</text>
+
+  <text x="540" y="906" text-anchor="middle" font-size="19" fill="#78716c" font-family="'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace">github.com/TeemoSun/privatedrop</text>
+</svg>
